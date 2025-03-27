@@ -1,0 +1,28 @@
+Id,Name,Shape Library,Page ID,Contained By,Group,Line Source,Line Destination,Source Arrow,Destination Arrow,Status,Text Area 1,Comments
+1,Document,,,,,,,,,Draft,DisasterMapFlowDiagram_D3,
+2,Page,,,,,,,,,,Page 1,
+3,Rectangle,Geometric Shapes,2,,,,,,,,Launch Screen / Load Screen,
+4,Rectangle,Geometric Shapes,2,,,,,,,,Search Event Screen,
+5,Rectangle,Geometric Shapes,2,,,,,,,,Report Event Screen (Form),
+6,Rectangle,Geometric Shapes,2,,,,,,,,Login Screen (Register Screen),
+7,Rectangle,Geometric Shapes,2,,,,,,,,Settings,
+8,Rectangle,Geometric Shapes,2,,,,,,,,View Event Report Details Screen,
+9,Rectangle,Geometric Shapes,2,,,,,,,,Administraion Management Screen,
+10,Rectangle,Geometric Shapes,2,,,,,,,,Event Map / Landing Screen,
+11,Rectangle,Geometric Shapes,2,,,,,,,,#237F52 Signal Green,
+12,Rectangle,Geometric Shapes,2,,,,,,,, #005387 Signal Blue ,
+13,Rectangle,Geometric Shapes,2,,,,,,,,#F9A900 Signal Yellow,
+14,Rectangle,Geometric Shapes,2,,,,,,,,#9B2423 Signal Red,
+15,Text,Standard,2,,,,,,,,Level 1 Minor Event - No Threat To Safety,
+16,Text,Standard,2,,,,,,,,Level 2 Low Level Event - Low Threat To Safety,
+17,Text,Standard,2,,,,,,,,Level 3 Medium Level Event Use Extreme Caution- Medium Threat To Safety,
+18,Text,Standard,2,,,,,,,,"Level 4 High Level Event - Danger, Avoid Due to High Threat To Safety",
+19,Line,,2,,,3,10,None,Equilateral Arrow,,,
+20,Line,,2,,,10,5,None,Equilateral Arrow,,,
+21,Line,,2,,,10,7,None,Equilateral Arrow,,,
+22,Line,,2,,,6,7,Equilateral Arrow,Equilateral Arrow,,,
+23,Line,,2,,,5,6,Equilateral Arrow,Equilateral Arrow,,,
+24,Line,,2,,,6,9,None,Equilateral Arrow,,,
+25,Line,,2,,,10,4,None,Equilateral Arrow,,,
+26,Line,,2,,,4,5,Equilateral Arrow,Equilateral Arrow,,,
+27,Line,,2,,,,,None,Equilateral Arrow,,,
