@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 export default function SettingsScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Report a Hazard Page</Text>
+      <Text style={styles.text}>Settings Page</Text>
     </View>
   );
 }
