@@ -8,6 +8,8 @@ export default function Settings() {
       <Stack.Screen
         options={{
           headerBackTitle: "Back", // This sets the back button label to "Back"
+          headerTitle: "Settings", // This sets the title of the screen to "Settings"
+          headerTitleStyle: { fontSize: 20 }, // This sets the font size of the title to 20
         }}
       />
       {/* Rest of your Settings screen content */}

@@ -170,7 +170,7 @@ const getCurrentLocation = async (): Promise<LocationData | null> => {
       return null;
     }
 
-    const { status } = await withTimeout(Location.requestForegroundPermissionsAsync(), 3000);
+    const { status } = await withTimeout(Location.requestForegroundPermissionsAsync(), 10000);
       if (status !== 'granted') {
           Alert.alert('Location permissions denied', 'Enable location in settings to use all features of this app');
           return null;
@@ -178,7 +178,7 @@ const getCurrentLocation = async (): Promise<LocationData | null> => {
 
     const loc = await withTimeout(Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High
-    }), 5000);
+    }), 10000); // 10 second timeout
 
     // (instead of return location)
     return {
@@ -407,7 +407,7 @@ const styles = StyleSheet.create({
   },
   refreshButton: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 70,
     right: 20,
     backgroundColor: '#eee',
     borderRadius: 50,
