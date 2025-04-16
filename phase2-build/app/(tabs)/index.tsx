@@ -266,7 +266,7 @@ export default function Index() {
         // React Native geolocation
         let nativeLocation = null;
         try {
-          nativeLocation = await getCurrentLocation(); // First precise geo-location attepmt goes ere
+          nativeLocation = await getCurrentLocation(); // First precise geo-location attempt goes here
         } catch (e) {
           console.warn("getCurrentLocation timed out", e);
         }

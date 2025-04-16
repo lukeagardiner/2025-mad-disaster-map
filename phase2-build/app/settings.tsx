@@ -1,10 +1,20 @@
+import { Stack } from 'expo-router';
 import { View, Text, StyleSheet } from 'react-native';
 
-export default function SettingsScreen() {
+export default function Settings() {
   return (
-    <View style={styles.container}>
-      <Text style={styles.text}>Settings Page</Text>
-    </View>
+    <>
+      {/* Customize the header */}
+      <Stack.Screen
+        options={{
+          headerBackTitle: "Back", // This sets the back button label to "Back"
+        }}
+      />
+      {/* Rest of your Settings screen content */}
+      <View style={styles.container}>
+        <Text>Settings Screen</Text>
+      </View>
+    </>
   );
 }
 
