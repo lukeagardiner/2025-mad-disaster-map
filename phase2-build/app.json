@@ -42,10 +42,18 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location."
+          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location.",
         }
       ]
-    ]
+    ],
+    "ios": {
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "This app needs your location to show relevant map features"
+      }
+    },
+    "android": {
+      "permissions": ["ACCESS_FINE_LOCATION"]
+    }
   }
   }
 }
