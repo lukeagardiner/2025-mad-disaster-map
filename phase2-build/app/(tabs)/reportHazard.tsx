@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, Pressable, GestureResponderEvent, TextInput, Keyboard, Button, TouchableWithoutFeedback, Image, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Pressable, GestureResponderEvent, TextInput, Keyboard, Button, TouchableWithoutFeedback, Image, Dimensions, FlatList } from 'react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import ModalDropdown from 'react-native-modal-dropdown';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,28 +19,14 @@ export default function ReportHazardScreen() {
   const [selectedHazard, setSelectedHazard] = useState(''); // State to track the selected hazard
   const [isDropdownOpen, setIsDropdownOpen] = useState(false); // Tracks dropdown state
   const [description, setDescription] = useState(''); // Tracks the description state
-  const hazardOptions = ['Flood', 'Fallen Tree', 'Fallen Powerline', 'Fire']; // Hazard options for the dropdown list
   const [images, setImages] = useState<string[]>([]); // State to track the selected images (URIs)
-  const dropdownRef = useRef<ModalDropdown>(null); // Ref to access the dropdown component
+  const hazardOptions = ['Flood', 'Fallen Tree', 'Fallen Powerline', 'Fire']; // Hazard options for the dropdown list
   const MAX_WORD_COUNT = 256; // Maximum word count for the description
   const MAX_IMAGES = 3; // Maximum number of images allowed
 
-  // Get screen width for pager item sizing
-  const { width: screenWidth } = Dimensions.get('window');
-  const pagerItemWidth = screenWidth * 0.8; // 80% of screen width for each image
-
-  // Function to open the dropdown when the user presses the picker container
-  const openDropdown = () => {
-    if (dropdownRef.current) {
-      dropdownRef.current.show();
-    }
-  };
   // Function to clear the selected hazard when the user presses the "Clear Selection" button
   // This function resets the dropdown selection to the default value
   function clearSelection(event: GestureResponderEvent): void {
-    if (dropdownRef.current) {
-      dropdownRef.current?.select(-1); // Reset the dropdown selection to no option
-    }
     setSelectedHazard(''); // Clear the selected hazard state
     setIsDropdownOpen(false); // Close the dropdown
   }
@@ -78,13 +64,16 @@ export default function ReportHazardScreen() {
 
     if (!result.canceled) {
       const selectedImages = result.assets.map((asset) => asset.uri); // Extract URIs from selected assets
-      setImages(selectedImages); // Update the images state with selected URIs
+      setImages((prevImages) => {
+        const newImages = [...prevImages, ...selectedImages]; // Combine previous and new images
+        return newImages.slice(0, MAX_IMAGES); // Limit to the maximum number of images
+      });
     }
-  }
+  };
 
   const takePhoto = async () => {
     // Request permission to access the camera
-    const {status} = await ImagePicker.requestCameraPermissionsAsync();
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
       alert('Camera permission is required!');
       return;
@@ -97,96 +86,132 @@ export default function ReportHazardScreen() {
     });
     if (!result.canceled) {
       const selectedImages = result.assets.map((asset) => asset.uri); // Extract URIs from selected assets
-      setImages(selectedImages); // Update the images state with selected URIs
+      setImages((prevImages) => {
+        const newImages = [...prevImages, ...selectedImages]; // Combine previous and new images
+        return newImages.slice(0, MAX_IMAGES); // Limit to the maximum number of images
+      });
     }
-  }
+  };
 
+  // Function to delete an image from the selected images list
+  const handleDeleteImage = (indexToDelete: number) => {
+    setImages((prevImages) =>
+      prevImages.filter((_, index) => index !== indexToDelete)
+    );
+  };
 
   return (
     <View style={styles.pageContainer}>
-        {/*Settings Button*/}
-        <Pressable
-          onPress={() => {
-            console.log('Navigating to settings'); // Debug: Log navigation
-            router.push("/settings");
-          }}
-          style={styles.settingsButton}
-        >
-          <Ionicons name="settings" size={24} color="black" />
-        </Pressable>
+      {/*Settings Button*/}
+      <Pressable
+        onPress={() => {
+          console.log('Navigating to settings'); // Debug: Log navigation
+          router.push('/settings');
+        }}
+        style={styles.settingsButton}
+      >
+        <Ionicons name="settings" size={24} color="black" />
+      </Pressable>
+
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
         <View style={styles.titleContainer}>
           <Text style={styles.title}>Disaster Map</Text>
           <Text style={styles.text}>Report a Hazard Page</Text>
-          {/* Dropdown Container */}
-          <Pressable style={styles.dropdownContainer} onPress={openDropdown}>
-            <ModalDropdown
-              ref={dropdownRef}
-              options={hazardOptions}
-              defaultValue="Select a Hazard"
-              onSelect={(index, value) => setSelectedHazard(value)}
-              onDropdownWillShow={() => setIsDropdownOpen(true)}
-              onDropdownWillHide={() => setIsDropdownOpen(false)}
+
+          {/* Custom Dropdown Container */}
+          <View style={styles.dropdownContainer}>
+            <Pressable
+              onPress={() => setIsDropdownOpen(!isDropdownOpen)}
               style={styles.dropdown}
-              textStyle={styles.dropdownText}
-              dropdownStyle={styles.dropdownMenu}
-              dropdownTextStyle={styles.dropdownMenuText}
-            />
-            {/* Down Arrow Icon (toggles direction) */}
-            <Ionicons
-              name={isDropdownOpen ? 'chevron-up' : 'chevron-down'} // Icon to indicate dropdown state
-              size={20}
-              color="black"
-              style={styles.dropdownArrow}
-            />
+            >
+              <Text style={styles.dropdownText}>
+                {selectedHazard || 'Select a Hazard'}
+              </Text>
+              <Ionicons
+                name={isDropdownOpen ? 'chevron-up' : 'chevron-down'}
+                size={20}
+                color="black"
+                style={styles.dropdownArrow}
+              />
+            </Pressable>
+
+            {isDropdownOpen && (
+              <View style={styles.dropdownMenu}>
+                {hazardOptions.map((option, index) => (
+                  <Pressable
+                    key={index}
+                    style={{ padding: 10 }}
+                    onPress={() => {
+                      setSelectedHazard(option);
+                      setIsDropdownOpen(false);
+                    }}
+                  >
+                    <Text style={styles.dropdownMenuText}>{option}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+          </View>
+
+          <Pressable style={styles.clearText} onPress={clearSelection}>
+            <Text>Clear Selection</Text>
           </Pressable>
-          <Pressable style={styles.clearText} onPress={clearSelection}> // Clear Selection Button
-            <Text>Clear Selection</Text> // This button clears the selected hazard
-          </Pressable>
-          {/* Display the selected hazard (optional, for debugging) */}
+
           {selectedHazard ? (
-            <Text style={styles.selectedText}>Selected: {selectedHazard}</Text>
+            <Text style={styles.selectedText}>
+              Selected: {selectedHazard}
+            </Text>
           ) : null}
+
           {/*Description Input field*/}
           <View style={styles.descriptionContainer}>
             <TextInput
               style={styles.descriptionInput}
               placeholder="Enter a description (max 256 words)" // Placeholder text
-              value={description} 
+              value={description}
               onChangeText={handleDescriptionChange} // Handle text input changes
               multiline // Allow multiline input
               maxLength={256} // Limit to 256 characters
-              textAlignVertical='top' // Align text to the top of the input field
+              textAlignVertical="top" // Align text to the top of the input field
             />
             <Text style={styles.wordCount}>
               Word Count: {countWords(description)} / {MAX_WORD_COUNT}
             </Text>
           </View>
           
-
+          <Text style={styles.textImage}>Upload Images</Text>
           {/* Image Upload Buttons: This step works */}
           <View style={styles.imageButtonsContainer}>
-            <Pressable style={styles.imageButton} onPress={pickImage}> // Pick Image from Gallery
-              <Text style={styles.imageButtonText}>Pick from Gallery</Text>
+            <Pressable style={styles.imageButton} onPress={pickImage}>
+              {/* Pick Image from Gallery */}
+              <Text style={styles.imageButtonText}>Image from Gallery</Text>
             </Pressable>
-            <Pressable style={styles.imageButton} onPress={takePhoto}> // Take Photo using Camera
+            <Pressable style={styles.imageButton} onPress={takePhoto}>
+              {/* Take Photo using Camera */}
               <Text style={styles.imageButtonText}>Take Photo</Text>
             </Pressable>
           </View>
 
-          {/* Image PagerView (Carousel) : Not Working */}
-          {images.length > 0 && ( // Only show if images are selected
-            <View style={styles.pagerContainer}>
-              <PagerView
-                style={{ height: 220, width: pagerItemWidth }}
-                initialPage={0}
-              >
-                {images.map((imageUri, index) => ( // Map through selected images
-                  <View key={index} style={styles.pagerItem}>
-                    <Image source={{ uri: imageUri }} style={styles.pagerImage} />
+          {/* Display uploaded images with delete option */}
+          {images.length > 0 && (
+            <View style={styles.flatListContainer}>
+              <FlatList
+                data={images}
+                horizontal
+                keyExtractor={(item, index) => index.toString()}
+                renderItem={({ item, index }) => (
+                  <View style={styles.imageItem}>
+                    <Image source={{ uri: item }} style={styles.pagerImage} />
+                    <Pressable
+                      style={styles.deleteButton}
+                      onPress={() => handleDeleteImage(index)}
+                    >
+                      <Ionicons name="close-circle" size={24} color="red" />
+                    </Pressable>
                   </View>
-                ))}
-              </PagerView>
+                )}
+                showsHorizontalScrollIndicator={false}
+              />
             </View>
           )}
         </View>
@@ -200,11 +225,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   titleContainer: {
-    padding: 10, // Adds padding around the title
-    alignItems: 'center', // Centers the title horizontally
-    marginTop: 45,
+    padding: 10,
+    alignItems: 'center',
+    marginTop: 47,
   },
-  settingsButton: { // Adds a settings button to the top left corner
+  settingsButton: {
     position: 'absolute',
     top: 50,
     left: 20,
@@ -214,17 +239,19 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   title: {
-    fontSize: 24, // Larger font size for the title
-    fontWeight: 'bold', // Makes the title bold
-    color: 'black', // White color for the title
-  },
-  container: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: 'black',
+    fontFamily: 'Roboto',
   },
   text: {
     fontSize: 20,
-    marginTop: 55,
+    marginTop: 35,
+    fontFamily: 'Roboto',
+  },
+  textImage:{
+    fontSize: 16,
+    marginTop: 20,
   },
   clearText: {
     marginTop: 8,
@@ -232,41 +259,40 @@ const styles = StyleSheet.create({
     color: 'blue',
   },
   dropdownContainer: {
-    width: '80%', // Sets the width of the picker container
-    marginTop: 40, // Adds margin above the picker
-    borderWidth: 1, // Adds a border around the picker container
-    borderColor: '#ccc', // Light gray color for the border
-    borderRadius: 5, // Rounds the corners of the border
+    width: '80%',
+    marginTop: 40,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
   },
   dropdown: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     padding: 10,
   },
   dropdownText: {
     fontSize: 16,
     color: 'black',
+    fontFamily: 'Roboto',
+  },
+  dropdownArrow: {
+    marginLeft: 10,
   },
   dropdownMenu: {
-    width: '80%',
-    height: 150, // Adjust the height of the dropdown menu
-    borderWidth: 1,
+    borderTopWidth: 1,
     borderColor: '#ccc',
-    borderRadius: 5,
+    backgroundColor: '#f9f9f9',
   },
   dropdownMenuText: {
     fontSize: 16,
     color: 'black',
-    padding: 10,
-  },
-  dropdownArrow: {
-    position: 'absolute',
-    right: 10,
-    top: '50%',
-    transform: [{ translateY: -10 }], //Centres the arrow vertically
+    fontFamily: 'Roboto',
   },
   selectedText: {
     marginTop: 10,
     fontSize: 16,
     color: 'black',
+    fontFamily: 'Roboto',
   },
   descriptionContainer: {
     width: '80%',
@@ -281,16 +307,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     fontSize: 16,
     color: 'black',
+    fontFamily: 'Roboto',
   },
   wordCount: {
     marginTop: 5,
     fontSize: 14,
     color: '#666',
     textAlign: 'right',
-  },
-  page: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    fontFamily: 'Roboto',
   },
   imageButtonsContainer: {
     flexDirection: 'row',
@@ -308,19 +332,28 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
+    fontFamily: 'Roboto',
   },
-  pagerContainer: {
+  flatListContainer: {
     marginTop: 20,
-    alignItems: 'center',
+    paddingHorizontal: 10,
   },
-  pagerItem: {
-    justifyContent: 'center',
-    alignItems: 'center',
+  imageItem: {
+    marginRight: 10,
+    position: 'relative',
   },
   pagerImage: {
-    width: '100%',
+    width: 200,
     height: 200,
     borderRadius: 10,
     resizeMode: 'cover',
+  },
+  deleteButton: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    borderRadius: 12,
+    zIndex: 1,
   },
 });

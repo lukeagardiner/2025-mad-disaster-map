@@ -362,7 +362,7 @@ export default function Index() {
         onPress={loadLocation}
         style={styles.refreshButton}
       >
-        <Ionicons name="compass-outline" size={24} color="black" />
+        <Ionicons name="compass-outline" size={20} color="black" />
       </Pressable>
     </View>
   );
@@ -382,7 +382,7 @@ const styles = StyleSheet.create({
   titleContainer: {
     padding: 10, // Adds padding around the title
     alignItems: 'center', // Centers the title horizontally
-    marginTop: 45,
+    marginTop: 47,
   },
   title: {
     fontSize: 24, // Larger font size for the title
@@ -407,8 +407,8 @@ const styles = StyleSheet.create({
   },
   refreshButton: {
     position: 'absolute',
-    bottom: 70,
-    right: 20,
+    bottom: '12%',
+    right: '5%',
     backgroundColor: '#eee',
     borderRadius: 50,
     padding: 15,
