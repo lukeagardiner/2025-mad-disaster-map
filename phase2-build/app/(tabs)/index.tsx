@@ -407,8 +407,8 @@ const styles = StyleSheet.create({
   },
   refreshButton: {
     position: 'absolute',
-    bottom: '12%',
-    right: '5%',
+    bottom: '12%', // Positioned above the bottom of the screen
+    right: '5%', // Positioned to the right of the screen
     backgroundColor: '#eee',
     borderRadius: 50,
     padding: 15,

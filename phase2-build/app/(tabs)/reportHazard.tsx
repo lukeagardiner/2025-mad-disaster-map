@@ -1,18 +1,14 @@
 import { View, Text, StyleSheet, Pressable, GestureResponderEvent, TextInput, Keyboard, Button, TouchableWithoutFeedback, Image, Dimensions, FlatList } from 'react-native';
 import React, { useEffect, useRef, useState } from 'react';
-import ModalDropdown from 'react-native-modal-dropdown';
 import { Ionicons } from '@expo/vector-icons';
-import PagerView from 'react-native-pager-view';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 /* 
   Also install these modules:  
 */
-//npm install react-native-pager-view
-//npm install react-native-modal-dropdown
 //npm install @expo/vector-icons
 //npm install expo-image-picker
-//npm install react-native-pager-view
+//npm install expo-router
 
 
 export default function ReportHazardScreen() {
@@ -28,11 +24,11 @@ export default function ReportHazardScreen() {
   // This function resets the dropdown selection to the default value
   function clearSelection(event: GestureResponderEvent): void {
     setSelectedHazard(''); // Clear the selected hazard state
-    setIsDropdownOpen(false); // Close the dropdown
   }
-
+  // Function to count the number of words in a given text
+  // This function splits the text by whitespace and returns the length of the resulting array
   const countWords = (text: string) => {
-    const words = text.trim().split(/\s+/); // Split the text into words using whitespace as a delimiter
+    const words = text.trim().split(/\s+/); 
     return words.length; // Return the word count
   };
 
@@ -45,7 +41,7 @@ export default function ReportHazardScreen() {
       alert(`Maximum word count is ${MAX_WORD_COUNT}`); // Alert the user if exceeding limit
     }
   };
-
+  // Function to pick an image from the device's media library
   const pickImage = async () => {
     // Request permission to access the media library
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -61,7 +57,7 @@ export default function ReportHazardScreen() {
       aspect: [4, 3],
       quality: 1,
     });
-
+    // Check if the user canceled the image selection
     if (!result.canceled) {
       const selectedImages = result.assets.map((asset) => asset.uri); // Extract URIs from selected assets
       setImages((prevImages) => {
@@ -70,7 +66,7 @@ export default function ReportHazardScreen() {
       });
     }
   };
-
+  // Function to take a photo using the camera
   const takePhoto = async () => {
     // Request permission to access the camera
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -84,6 +80,7 @@ export default function ReportHazardScreen() {
       aspect: [4, 3],
       quality: 1,
     });
+    // Check if the user canceled the image selection
     if (!result.canceled) {
       const selectedImages = result.assets.map((asset) => asset.uri); // Extract URIs from selected assets
       setImages((prevImages) => {
@@ -106,14 +103,14 @@ export default function ReportHazardScreen() {
       <Pressable
         onPress={() => {
           console.log('Navigating to settings'); // Debug: Log navigation
-          router.push('/settings');
+          router.push('/settings'); // Navigate to settings page
         }}
         style={styles.settingsButton}
       >
         <Ionicons name="settings" size={24} color="black" />
       </Pressable>
-
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      {/*Dismiss keyboard when tapping outside of TextInput*/}
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}> 
         <View style={styles.titleContainer}>
           <Text style={styles.title}>Disaster Map</Text>
           <Text style={styles.text}>Report a Hazard Page</Text>
@@ -122,41 +119,44 @@ export default function ReportHazardScreen() {
           <View style={styles.dropdownContainer}>
             <Pressable
               onPress={() => setIsDropdownOpen(!isDropdownOpen)}
-              style={styles.dropdown}
-            >
+              style={styles.dropdown}>
               <Text style={styles.dropdownText}>
                 {selectedHazard || 'Select a Hazard'}
               </Text>
               <Ionicons
-                name={isDropdownOpen ? 'chevron-up' : 'chevron-down'}
+                // Icon for dropdown arrow
+                name={isDropdownOpen ? 'chevron-up' : 'chevron-down'} 
                 size={20}
                 color="black"
                 style={styles.dropdownArrow}
               />
             </Pressable>
-
+            {/* Dropdown Menu */}
             {isDropdownOpen && (
               <View style={styles.dropdownMenu}>
+                {/* Map through hazard options and create Pressable items */}
                 {hazardOptions.map((option, index) => (
                   <Pressable
                     key={index}
                     style={{ padding: 10 }}
                     onPress={() => {
-                      setSelectedHazard(option);
-                      setIsDropdownOpen(false);
-                    }}
-                  >
-                    <Text style={styles.dropdownMenuText}>{option}</Text>
+                      setSelectedHazard(option); // Set selected hazard
+                      setIsDropdownOpen(false); // Close dropdown
+                    }}>
+                    <Text style={styles.dropdownMenuText}>{option}</Text> 
                   </Pressable>
                 ))}
               </View>
             )}
           </View>
-
+            
+            {/* Clear Selection Button */}
+            {/* This button clears the selected hazard when pressed */}
           <Pressable style={styles.clearText} onPress={clearSelection}>
             <Text>Clear Selection</Text>
           </Pressable>
-
+          {/* Display selected hazard text */}
+          {/* This text shows the currently selected hazard, if any */}
           {selectedHazard ? (
             <Text style={styles.selectedText}>
               Selected: {selectedHazard}
@@ -175,7 +175,9 @@ export default function ReportHazardScreen() {
               textAlignVertical="top" // Align text to the top of the input field
             />
             <Text style={styles.wordCount}>
-              Word Count: {countWords(description)} / {MAX_WORD_COUNT}
+              {/* Display word count and maximum word count */}
+              {/* This text shows the current word count and the maximum allowed */}
+              Word Count: {countWords(description)} / {MAX_WORD_COUNT} 
             </Text>
           </View>
           
@@ -197,20 +199,22 @@ export default function ReportHazardScreen() {
             <View style={styles.flatListContainer}>
               <FlatList
                 data={images}
-                horizontal
+                horizontal // Display images horizontally                
                 keyExtractor={(item, index) => index.toString()}
+                // Render each image with delete button
+                // This function renders each image in the FlatList
                 renderItem={({ item, index }) => (
                   <View style={styles.imageItem}>
                     <Image source={{ uri: item }} style={styles.pagerImage} />
                     <Pressable
                       style={styles.deleteButton}
-                      onPress={() => handleDeleteImage(index)}
+                      onPress={() => handleDeleteImage(index)} // Delete image
                     >
                       <Ionicons name="close-circle" size={24} color="red" />
                     </Pressable>
                   </View>
                 )}
-                showsHorizontalScrollIndicator={false}
+                showsHorizontalScrollIndicator={true} // Hide horizontal scroll indicator
               />
             </View>
           )}

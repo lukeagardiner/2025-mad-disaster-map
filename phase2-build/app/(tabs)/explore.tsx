@@ -25,13 +25,14 @@ export default function LoginScreen() {
       setError(`Email exceeded ${MAX_LENGTH} characters`);
       return;
     }
+    // Check if email is valid
     if (!validateEmail(email) && email.length > 0) {
       setError('Please enter a valid email address');
     } else {
       setError('');
     }
   };
-
+  /// Function to handle login button press
   const handleLogin = () => {
     if (error === '' && email !== '') {
       console.log('Email submitted for login:', email);
@@ -40,7 +41,7 @@ export default function LoginScreen() {
       console.log('Invalid email or error present');
     }
   };
-
+  /// Function to handle sign-up button press
   const handleSignUp = async() => {
     if (error === '' && email !== '') {
       console.log('Email submitted for sign up:', email);
@@ -56,15 +57,17 @@ export default function LoginScreen() {
       <Pressable
         onPress={() => {
           console.log('Navigating to settings'); // Debug: Log navigation
-          router.push('/settings');
+          router.push('/settings'); // Navigate to settings page
         }}
         style={styles.settingsButton}>
         <Ionicons name="settings" size={24} color="black" />
       </Pressable>
-    <KeyboardAvoidingView
+    <KeyboardAvoidingView 
       style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      //KeyboardAvoidingView to adjust view when keyboard is open
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}> 
+      {/*TouchableWithoutFeedback to dismiss keyboard when tapping outside of TextInput*/}
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}> 
         <View style={{ flex: 1 }}>
           <View style={styles.titleContainer}>
             <Text style={styles.title}>Disaster Map</Text>
@@ -82,9 +85,11 @@ export default function LoginScreen() {
             
             <View style={styles.loginButtons}>
               <TouchableOpacity
-                style={[styles.button, {backgroundColor: error !== '' || email === '' ? '#B0C4DE' : '#007BFF'}]}
+              /// Login button with conditional styling based on error and email state
+                /// If error is present or email is empty, button is disabled and greyed out
+                style={[styles.button, {backgroundColor: error !== '' || email === '' ? '#B0C4DE' : '#007BFF'}]} 
                 onPress={handleLogin}
-                disabled={error !== '' || email === ''}
+                disabled={error !== '' || email === ''} 
                 activeOpacity={0.8}
               >
                 <Text style={styles.buttonText}>Login</Text>
