@@ -1,109 +1,190 @@
-import { StyleSheet, Image, Platform } from 'react-native';
+import { StyleSheet, Platform, View, TouchableWithoutFeedback, Keyboard, Text, TextInput, KeyboardAvoidingView, TouchableOpacity, Pressable } from 'react-native';
+import { useState } from 'react';
+import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
-import { Collapsible } from '@/components/Collapsible';
-import { ExternalLink } from '@/components/ExternalLink';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { IconSymbol } from '@/components/ui/IconSymbol';
+const INITIAL_EMAIL = ''; // Initial email state
+const INITIAL_ERROR = ''; // Initial error state
 
-export default function TabTwoScreen() {
+export default function LoginScreen() {
+  const [email, setEmail] = useState(INITIAL_EMAIL);
+  const [error, setError] = useState(INITIAL_ERROR);
+  const MAX_LENGTH = 50;
+
+  /// Function to validate email format
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  /// Function to handle email input changes and validation
+  const handleEmailChange = (email: string) => {
+    setEmail(email); 
+    // Validate email format and length
+    if (email.length > MAX_LENGTH) {
+      setError(`Email exceeded ${MAX_LENGTH} characters`);
+      return;
+    }
+    // Check if email is valid
+    if (!validateEmail(email) && email.length > 0) {
+      setError('Please enter a valid email address');
+    } else {
+      setError('');
+    }
+  };
+  /// Function to handle login button press
+  const handleLogin = () => {
+    if (error === '' && email !== '') {
+      console.log('Email submitted for login:', email);
+      // TODO: Add Firebase login logic here
+    } else {
+      console.log('Invalid email or error present');
+    }
+  };
+  /// Function to handle sign-up button press
+  const handleSignUp = async() => {
+    if (error === '' && email !== '') {
+      console.log('Email submitted for sign up:', email);
+      // TODO: Add Firebase sign-up logic here
+    } else {
+      console.log('Invalid email or error present');
+    }
+  };
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Login Page</ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image source={require('@/assets/images/react-logo.png')} style={{ alignSelf: 'center' }} />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Custom fonts">
-        <ThemedText>
-          Open <ThemedText type="defaultSemiBold">app/_layout.tsx</ThemedText> to see how to load{' '}
-          <ThemedText style={{ fontFamily: 'SpaceMono' }}>
-            custom fonts such as this one.
-          </ThemedText>
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/versions/latest/sdk/font">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user's current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful <ThemedText type="defaultSemiBold">react-native-reanimated</ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+    <View style={styles.pageContainer}>
+      {/*Settings Button*/}
+      <Pressable
+        onPress={() => {
+          console.log('Navigating to settings'); // Debug: Log navigation
+          router.push('/settings'); // Navigate to settings page
+        }}
+        style={styles.settingsButton}>
+        <Ionicons name="settings" size={24} color="black" />
+      </Pressable>
+    <KeyboardAvoidingView 
+      style={{ flex: 1 }}
+      //KeyboardAvoidingView to adjust view when keyboard is open
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}> 
+      {/*TouchableWithoutFeedback to dismiss keyboard when tapping outside of TextInput*/}
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}> 
+        <View style={{ flex: 1 }}>
+          <View style={styles.titleContainer}>
+            <Text style={styles.title}>Disaster Map</Text>
+            <Text style={styles.text}>Login or Sign up Today!</Text>
+          </View>
+          <View style={styles.emailContainer}>
+            <TextInput
+              style={styles.emailInput}
+              placeholder="Email Address"
+              value={email}
+              onChangeText={handleEmailChange}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            
+            <View style={styles.loginButtons}>
+              <TouchableOpacity
+              /// Login button with conditional styling based on error and email state
+                /// If error is present or email is empty, button is disabled and greyed out
+                style={[styles.button, {backgroundColor: error !== '' || email === '' ? '#B0C4DE' : '#007BFF'}]} 
+                onPress={handleLogin}
+                disabled={error !== '' || email === ''} 
+                activeOpacity={0.8}
+              >
+                <Text style={styles.buttonText}>Login</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, { backgroundColor: '#28A745' }]}
+                onPress={handleSignUp}
+                disabled={error !== '' || email === ''}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.buttonText}>Sign Up</Text>
+              </TouchableOpacity>
+            </View>
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          </View>
+        </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
+  pageContainer: {
+    flex: 1,
+  },
+  settingsButton: {
     position: 'absolute',
+    top: 50,
+    left: 20,
+    backgroundColor: '#eee',
+    borderRadius: 10,
+    padding: 10,
+    zIndex: 1,
   },
   titleContainer: {
-    flexDirection: 'row',
-    gap: 8,
+    marginTop: 47,
+    padding: 10,
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: 'Black',
+    fontFamily: 'Roboto',
+  },
+  text: {
+    fontSize: 20,
+    minHeight: 40,
+    paddingVertical: 10,
+    marginTop: 45,
+    fontFamily: 'Roboto',
+  },
+  emailContainer: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  emailInput: {
+    height: 40,
+    width: '75%',
+    borderColor: '#000',
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    marginLeft: '5%',
+    borderRadius: 5,
+    fontFamily: 'Roboto',
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 14,
+    marginTop: 10,
+    marginLeft: 20,
+    fontFamily: 'Roboto',
+  },
+  loginButtons: {
+    marginTop: 20,
+    width: '75%',
+    alignItems: 'center',
+  },
+  button: {
+    width: '65%',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginVertical: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    fontFamily: 'Roboto',
   },
 });
