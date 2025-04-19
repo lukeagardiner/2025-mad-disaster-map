@@ -44,6 +44,7 @@ const DEFAULT_REGION: LocationData = {
 ## -- HELPER FUNCTIONS --                                       ##
 ###################################################################
 */
+
   
 // Timeout logic if required
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
@@ -200,6 +201,7 @@ const getCurrentLocation = async (): Promise<LocationData | null> => {
 ## -- TAB / SCREEN CONTROL LOGIC --                              ##
 ###################################################################
 */
+
 // Home screen / Index block
 export default function Index() {
   //const [location, setLocation] = useState<Region | null>(null);
@@ -313,6 +315,7 @@ export default function Index() {
   ## -- UI RENDERING / VIEW CONTROL / CONTAINER LOGIC & DESIGN --  ##
   ###################################################################
   */
+
   if (loading) {
     // View Loading Condition
     return (
@@ -331,6 +334,7 @@ export default function Index() {
       </View>
     );
   }
+
   return (
     // View Default Condition
     <View style={styles.wrapper}>

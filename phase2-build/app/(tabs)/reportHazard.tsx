@@ -10,6 +10,10 @@ import { router } from 'expo-router';
 //npm install expo-image-picker
 //npm install expo-router
 
+// TODO
+//-include address input
+//-be triggered from pin in index or search page
+
 
 export default function ReportHazardScreen() {
   const [selectedHazard, setSelectedHazard] = useState(''); // State to track the selected hazard

@@ -1,15 +1,23 @@
+// the original settings file has been backed up as settings2.tsx as I'm messing about with this one with the NativeWind theming
 import { Stack } from 'expo-router';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, Switch, StyleSheet, TouchableOpacity } from 'react-native';
 import { useState } from 'react';
+import { useTheme } from '@/theme/ThemeContext';
 
 export default function Settings() {
-  const [isAboutVisible, setIsAboutVisible] = useState(false);
+  const [isAboutVisible, setIsAboutVisible] = useState(false); // existing
+  const { theme, setTheme } = useTheme(); // addedV2
 
-  const toggleAbout = () => {
-    setIsAboutVisible(!isAboutVisible);
-  };
+  const toggleAbout = () => { // existing
+    setIsAboutVisible(!isAboutVisible); // existing
+  }; // existing
+
+  // Switch value is true if theme is 'dark' // addedV2
+  const isDark = theme === "dark"; // addedV2
 
   return (
+    // existing chunk
+    /*
     <>
       <Stack.Screen
         options={{
@@ -38,6 +46,49 @@ export default function Settings() {
             </Text>
           </View>
         )}
+      </View>
+    </>
+    */
+   // addedV2 chunk
+    <>
+      <Stack.Screen
+        options={{
+          headerBackTitle: "Back",
+          headerTitle: "Disaster Map",
+          headerTitleStyle: {
+            fontSize: 24,
+            fontWeight: 'bold',
+            fontFamily: 'Roboto',
+            color: 'black',
+          },
+        }}
+      />
+      <View style={styles.titleContainer}>
+        <Text style={styles.text}>Settings</Text>
+        <TouchableOpacity style={styles.aboutButton} onPress={toggleAbout}>
+          <Text style={styles.aboutButtonText}>About</Text>
+        </TouchableOpacity>
+        {isAboutVisible && (
+          <View style={styles.aboutContent}>
+            <Text style={styles.aboutText}>
+              Disaster Map is a mobile application designed to provide real-time disaster information and assistance. Developed by the Group 2 team (Luke and Richard).
+            </Text>
+            <Text style={styles.aboutText}>
+              Affiliated Government Agencies: Anyone who wants to help with disaster management and response.
+            </Text>
+          </View>
+        )}
+        <View className="flex-1 items-center justify-center bg-white dark:bg-black">
+          <Text className="text-lg mb-4 text-black dark:text-white">
+            Dark Mode: {isDark ? "On" : "Off"}
+          </Text>
+          <Switch
+            value={isDark}
+            onValueChange={(value) => setTheme(value ? "dark" : "light")}
+            thumbColor={isDark ? "#222" : "#eee"}
+            trackColor={{ false: "#ccc", true: "#444" }}
+          />
+        </View>
       </View>
     </>
   );
