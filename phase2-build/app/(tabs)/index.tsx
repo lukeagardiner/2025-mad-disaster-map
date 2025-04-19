@@ -170,7 +170,7 @@ const getCurrentLocation = async (): Promise<LocationData | null> => {
       return null;
     }
 
-    const { status } = await withTimeout(Location.requestForegroundPermissionsAsync(), 3000);
+    const { status } = await withTimeout(Location.requestForegroundPermissionsAsync(), 10000);
       if (status !== 'granted') {
           Alert.alert('Location permissions denied', 'Enable location in settings to use all features of this app');
           return null;
@@ -178,7 +178,7 @@ const getCurrentLocation = async (): Promise<LocationData | null> => {
 
     const loc = await withTimeout(Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High
-    }), 5000);
+    }), 10000); // 10 second timeout
 
     // (instead of return location)
     return {
@@ -266,7 +266,7 @@ export default function Index() {
         // React Native geolocation
         let nativeLocation = null;
         try {
-          nativeLocation = await getCurrentLocation(); // First precise geo-location attepmt goes ere
+          nativeLocation = await getCurrentLocation(); // First precise geo-location attempt goes here
         } catch (e) {
           console.warn("getCurrentLocation timed out", e);
         }
@@ -362,7 +362,7 @@ export default function Index() {
         onPress={loadLocation}
         style={styles.refreshButton}
       >
-        <Ionicons name="compass-outline" size={24} color="black" />
+        <Ionicons name="compass-outline" size={20} color="black" />
       </Pressable>
     </View>
   );
@@ -382,7 +382,7 @@ const styles = StyleSheet.create({
   titleContainer: {
     padding: 10, // Adds padding around the title
     alignItems: 'center', // Centers the title horizontally
-    marginTop: 45,
+    marginTop: 47,
   },
   title: {
     fontSize: 24, // Larger font size for the title
@@ -407,8 +407,8 @@ const styles = StyleSheet.create({
   },
   refreshButton: {
     position: 'absolute',
-    bottom: 20,
-    right: 20,
+    bottom: '12%', // Positioned above the bottom of the screen
+    right: '5%', // Positioned to the right of the screen
     backgroundColor: '#eee',
     borderRadius: 50,
     padding: 15,

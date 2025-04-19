@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
 
-export default function SettingsScreen() {
+export default function SearchHazardScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.text}>Search a Hazard Page</Text>
