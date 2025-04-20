@@ -1,8 +1,13 @@
+import React from 'react'
+import { SessionProvider } from '../SessionContext'
 import { ThemeProvider, useTheme } from '@/theme/ThemeContext';
 import { Stack, SplashScreen } from 'expo-router';
 import * as Font from 'expo-font';
 import { View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context'
+import { NavigationContainer } from '@react-navigation/native';
 import { useEffect, useState, ReactNode } from 'react';
+
 
 type ThemedRootProps = {
   children: ReactNode;
@@ -42,14 +47,17 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider>
-      <ThemedRoot>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="+not-found" />
-          <Stack.Screen name="settings" />
-        </Stack>
-      </ThemedRoot>
-    </ThemeProvider>
+    /* Session support has been added */
+    <SessionProvider>
+      <ThemeProvider>
+        <ThemedRoot>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="+not-found" />
+            <Stack.Screen name="settings" />
+          </Stack>
+        </ThemedRoot>
+      </ThemeProvider>
+    </SessionProvider>
   );
 }

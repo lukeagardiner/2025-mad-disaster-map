@@ -15,6 +15,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage'; // For cac
 // - user terms / agreements visible like about
 // - include application VERSION in about
 // - include application warnings keys / explanation in ABOUT
+// - logout button
+// - generate local list of known events even if map can't load
 
 /*
 ###################################################################
