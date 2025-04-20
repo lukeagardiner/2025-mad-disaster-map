@@ -171,7 +171,7 @@ const getCurrentLocation = async (): Promise<LocationData | null> => {
       return null;
     }
 
-    const { status } = await withTimeout(Location.requestForegroundPermissionsAsync(), 10000);
+    const { status } = await withTimeout(Location.requestForegroundPermissionsAsync(), 15000);
       if (status !== 'granted') {
           Alert.alert('Location permissions denied', 'Enable location in settings to use all features of this app');
           return null;
@@ -179,7 +179,7 @@ const getCurrentLocation = async (): Promise<LocationData | null> => {
 
     const loc = await withTimeout(Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High
-    }), 10000); // 10 second timeout
+    }), 20000); // 10 second timeout
 
     // (instead of return location)
     return {
