@@ -13,6 +13,7 @@ import { router } from 'expo-router';
 // TODO
 //-include address input
 //-be triggered from pin in index or search page
+//-acquire dynamic hazard def from firestore
 
 
 export default function ReportHazardScreen() {

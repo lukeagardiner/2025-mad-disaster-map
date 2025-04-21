@@ -7,7 +7,7 @@ import { router, useRouter } from 'expo-router';
 //import { useSession } from '@/theme/ThemeContext'; // Access the session context
 import { useSession } from '../../SessionContext'; // Access the session context
 import DeviceCountry from 'react-native-device-country';
-
+import { useTheme } from '@/theme/ThemeContext'; // Access theme controls
 
 
 /** Additional installs **/
@@ -20,10 +20,11 @@ import DeviceCountry from 'react-native-device-country';
 // TODO
 // -- stick a reload button icon on the screen if map services disabled...
 // -- be able to configure timeouts from database
+// -- add an API to export the data from DB to third party apps
 
 /*
 ###################################################################
-## -- DATA DEFINITIONS & SETUP --                                          ##
+## -- DATA DEFINITIONS & SETUP --                                ##
 ###################################################################
 */
 
