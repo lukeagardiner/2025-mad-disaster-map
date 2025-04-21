@@ -22,6 +22,9 @@ import { useTheme } from '@/theme/ThemeContext'; // Access theme controls
 // -- be able to configure timeouts from database
 // -- add an API to export the data from DB to third party apps
 
+const DEBUG_MODE = 1; // Set to 1 for debugging
+
+
 /*
 ###################################################################
 ## -- DATA DEFINITIONS & SETUP --                                ##
@@ -201,10 +204,11 @@ const getCurrentLocation = async (): Promise<LocationData | null> => {
 
 /*
 ###################################################################
-## -- TAB / SCREEN CONTROL WITH  SESSION LOGIC --                ##
+## -- MAIN COMPONENTS --                                         ##
 ###################################################################
 */
 
+// NEW SESSION LOGIC
 // Home screen / Index block
 export default function Index() {
   const { session, updateSession } = useSession(); // Access session context
@@ -217,144 +221,95 @@ export default function Index() {
     setLoading(true);
     setErrorMsg(null);
     let initialLocation: LocationData | null = null;
+
     try {
+      // Check and request permissions
+      const existingPermissionResponse = await Location.getForegroundPermissionsAsync();
+      if (existingPermissionResponse.status === 'granted') {
+        console.log('DEBUG: Permissions already granted.');
+        updateSession({ locationPermission: existingPermissionResponse }); // Update session with full permission response
+      } else if (existingPermissionResponse.status === 'undetermined') {
+        const permissionResponse = await Location.requestForegroundPermissionsAsync();
+        updateSession({ locationPermission: permissionResponse }); // Update session with full permission response
+        if (permissionResponse.status !== 'granted') {
+          throw new Error('Permissions not granted after request.');
+        }
+      } else {
+        // Permissions denied
+        updateSession({ locationPermission: existingPermissionResponse }); // Update session with denied permission response
+        throw new Error('Permissions denied.');
+      }
+
       // Include fallback for web browser user
-      if (Platform.OS === "web") {
-        if ("geolocation" in navigator) {
+      if (Platform.OS === 'web') {
+        if ('geolocation' in navigator) {
           navigator.geolocation.getCurrentPosition(
             (pos) => {
-              //setLocation
               initialLocation = {
                 latitude: pos.coords.latitude,
                 longitude: pos.coords.longitude,
                 latitudeDelta: 0.01,
                 longitudeDelta: 0.01,
               };
-              // Populate the location object and stop the loading event / condition 
               setLocation(initialLocation);
-              updateSession({ currentLocation: initialLocation }); // adding session handling
+              updateSession({ currentLocation: initialLocation });
               setLoading(false);
             },
             async () => {
               try {
-                // Fallback Default Location implementation
-                initialLocation =
-                (await getGenericLocationFromIP()) || DEFAULT_REGION;
+                initialLocation = (await getGenericLocationFromIP()) || DEFAULT_REGION;
                 setLocation(initialLocation);
-                updateSession({ currentLocation: initialLocation }); // adding session handling
+                updateSession({ currentLocation: initialLocation });
               } catch (e) {
-                console.warn("Web IP or default lookup failed", e);
-                setErrorMsg("Error getting location");
+                console.warn('Web IP or default lookup failed', e);
+                setErrorMsg('Error getting location');
               } finally {
                 setLoading(false);
               }
             }
           );
         } else {
-          initialLocation = DEFAULT_REGION; // Web default handling
+          initialLocation = DEFAULT_REGION;
           setLocation(initialLocation);
-          updateSession({ currentLocation: initialLocation }); // adding session handling
+          updateSession({ currentLocation: initialLocation });
           setLoading(false);
         }
       } else {
-        // New Code Debugging <<<< INSERT START HERE
-        // Try to set the precise location
-        const nativeLocation = await getCurrentLocation();       
+        // Try to set the precise location for native platforms
+        const nativeLocation = await getCurrentLocation();
         if (nativeLocation) {
           initialLocation = nativeLocation;
-        }
-        else {
-          // Set a fallback location if we can't
-          initialLocation = (await getGenericLocationFromIP()) || (await getGenericLocationByCountry()) 
-          || DEFAULT_REGION;
+        } else {
+          // Set a fallback location if we can't get precise location
+          initialLocation =
+            (await getGenericLocationFromIP()) || (await getGenericLocationByCountry()) || DEFAULT_REGION;
         }
         setLocation(initialLocation);
         updateSession({ currentLocation: initialLocation });
         setLoading(false);
       }
     } catch (error) {
-      console.error('Error in location flow', error);
-      setErrorMsg('Error getting location.');
-      setLocation(DEFAULT_REGION);
-      updateSession({ currentLocation: DEFAULT_REGION}); // Extra default logic
+      if (error instanceof Error) {
+        console.error(error.message || 'Error with location permissions.');
+        setErrorMsg(error.message || 'Failed to get location. Please check permissions.');
+        setLocation(DEFAULT_REGION);
+        updateSession({ currentLocation: DEFAULT_REGION });
+      } else {
+        console.error('Unknown error occurred:', error);
+        setErrorMsg('An unknown error occurred. Please try again.');
+        setLocation(DEFAULT_REGION);
+        updateSession({ currentLocation: DEFAULT_REGION });
+      }
+    } finally {
       setLoading(false);
     }
-  }, [updateSession]); // Save session
+  }, [updateSession]);
 
-  // More session logic
   useEffect(() => {
     if (!session.currentLocation) {
-      loadLocation();
+      loadLocation(); // Call loadLocation on mount if no location is in the session
     }
   }, [session.currentLocation, loadLocation]);
-
-        // New Code Debugging <<<< INSERT ENDS HERE
-
-        // DEBUG - S <<<< OLD CODE PAUSING STARTS HERE
-        /*
-        // Check location services before attempting to get location
-        
-        const { locationServicesEnabled } =
-          await Location.getProviderStatusAsync();
-        if (!locationServicesEnabled) {
-          Alert.alert(
-            "Location services disabled",
-            "Please enable location services in your device settings to use this feature.",
-            [{ text: "OK" }]
-          );
-          setLocation(DEFAULT_REGION); // Set default location
-          setLoading(false);
-          return; // Exit the function
-        }
-
-        // React Native geolocation
-        let nativeLocation = null;
-        try {
-          nativeLocation = await getCurrentLocation(); // First precise geo-location attempt goes here
-        } catch (e) {
-          console.warn("getCurrentLocation timed out", e);
-        }
-
-        if (nativeLocation) {
-          initialLocation = nativeLocation;
-        } else {
-          // if the react-native location fails
-          // Try getting a generic location from IP, then country, then use default - fallback
-          try {
-            initialLocation = await getGenericLocationFromIP();
-            if (!initialLocation) {
-              initialLocation = await getGenericLocationByCountry();
-            }
-          } catch (e) {
-            console.warn("Fallback IP/Country lookup failed", e);
-            setErrorMsg("Error getting generic location");
-          } finally {
-            // If all else fails do a default
-            // (Protection to ensure we always have a location in the end)
-            initialLocation = initialLocation || DEFAULT_REGION; 
-          }
-        }
-        // Do the location business agin
-        // Set location and stop loading state
-        setLocation(initialLocation);
-        setLoading(false);
-      }
-    } catch (error: any) {
-        // Hopefully catch any naughty errors we've otherwise missed
-        console.error("Error in location flow:", error);
-        setErrorMsg("Error getting generic location");
-        setLoading(false);
-    }
-    
-  }, []);
-
-
-  // Load location instruction - importanto
-  useEffect(() => {
-    loadLocation();
-  }, [loadLocation]);
-  */
-  // DEBUG - S <<<< OLD CODE PAUSING STARTS HERE
 
   /*
   ###################################################################
@@ -402,7 +357,7 @@ export default function Index() {
             style={styles.map}
             initialRegion={location}
             showsUserLocation={true}
-            onMapReady={() => console.log("Map is ready")}
+            onMapReady={() => console.log("Index Map Ready")}
           />
         )}
       </View>
@@ -430,50 +385,4 @@ const styles = StyleSheet.create({
   settingsButton: { position: 'absolute', top: 50, left: 20, padding: 10, zIndex: 1 },
   refreshButton: { position: 'absolute', bottom: '12%', right: '5%', padding: 15, zIndex: 1},
 });
-
-// New Code Debugging <<<< INSERT ENDS HERE
-// DEBUG <<<< Remove Existing START
-/*
-const styles = StyleSheet.create({
-  wrapper: {
-    flex: 1,
-  },
-  titleContainer: {
-    padding: 10, // Adds padding around the title
-    alignItems: 'center', // Centers the title horizontally
-    marginTop: 47,
-  },
-  title: {
-    fontSize: 24, // Larger font size for the title
-    fontWeight: 'bold', // Makes the title bold
-    color: 'black', // White color for the title
-  },
-  mapContainer: {
-    flex: 1, // Takes the remaining space after the title
-  },
-  map: {
-    width: '100%',
-    height: '100%',
-  },
-  settingsButton: {
-    position: 'absolute',
-    top: 50,
-    left: 20,
-    backgroundColor: '#eee',
-    borderRadius: 10,
-    padding: 10,
-    zIndex: 1,
-  },
-  refreshButton: {
-    position: 'absolute',
-    bottom: '12%', // Positioned above the bottom of the screen
-    right: '5%', // Positioned to the right of the screen
-    backgroundColor: '#eee',
-    borderRadius: 50,
-    padding: 15,
-    zIndex: 1,
-  }
-});
-*/
-// DEBUG <<<< Remove Existing END
 

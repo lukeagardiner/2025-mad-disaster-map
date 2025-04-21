@@ -1,26 +1,36 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { StyleSheet, View, SafeAreaView, TextInput, FlatList, Text, ActivityIndicator, Alert, Pressable, Platform } from 'react-native';
+import { StyleSheet, View, SafeAreaView, TextInput, Text, ActivityIndicator, FlatList, TouchableOpacity, Alert } from 'react-native';
 import MapView, { Marker, Region } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
+import { debounce } from 'lodash';
 import { useSession } from '../../SessionContext'; // Access session context
 import { useTheme } from '@/theme/ThemeContext'; // Access theme controls
 
-
-// TODO 
-// - Fix up faulty debug code design
-// - Replace simulated FIRESTORE FUNCTIONS
-// - Replace simulated ADDRESS SEARCH FUNCTIONS
-// - Replace getting coordinates from ADDRESS PLACEHOLDER (line 110 ish)
-// - Copy hazards near selected location to cache somehow for local offline storage as a list
-// -- Ideally hazards within 100km of set location, depending on MAX quantity
-// - Add option to search by coordinates
-// - Add option to manually input address
-
 /*
 ###################################################################
-## -- HAZARD OBJECT GLOBAL TYPE DEF --                           ##
+## -- DEBUG MODE AND CONSTANTS --                                ##
 ###################################################################
 */
+
+const DEBUG_MODE = 1; // Set to 1 to enable debug mode, 0 for production mode
+const NAVIGATION_MODE = 0;
+
+// Default location (Brisbane, Australia)
+const DEFAULT_REGION: Region = {
+  latitude: -27.4698,
+  longitude: 153.0251,
+  latitudeDelta: 0.01,
+  longitudeDelta: 0.01,
+};
+
+// Test address and coordinates for debug mode
+const debugAddress = "14 Sutherland St Walgett NSW, AUSTRALIA";
+const debugCoordinates: Region = {
+  latitude: -30.026042,
+  longitude: 148.114295,
+  latitudeDelta: 0.01,
+  longitudeDelta: 0.01,
+};
 
 // Hazard object data structure
 type Hazard = {
@@ -29,118 +39,127 @@ type Hazard = {
   description: string;
   latitude: number;
   longitude: number;
+  latitudeDelta: number;
+  longitudeDelta: number;
 };
 
-
-/*
-###################################################################
-## -- FAKE EVENTS FOR DEBUGGING --                               ##
-###################################################################
-*/
-
-const DEBUG_MODE = 1; // Set to 1 for debug mode, 0 for normal operation
-const debugAddress = "14 Sutherland St Walgett NSW, AUSTRALIA";
-const debugCoordinates = { latitude: -30.026042, longitude: 148.114295 };
+// Simulated debug hazards
 const debugHazards: Hazard[] = [
   {
     id: 'debug1',
     type: 'Flood',
-    description: 'Flooding reported near Walgett.',
-    latitude: -30.025042,
-    longitude: 148.115295,
+    description: 'Flooding reported near debug location.',
+    latitude: debugCoordinates.latitude + 0.01,
+    longitude: debugCoordinates.longitude + 0.01,
+    latitudeDelta: 0.01,
+    longitudeDelta: 0.01,
   },
   {
     id: 'debug2',
     type: 'Fire',
-    description: 'Bushfire reported near Walgett.',
-    latitude: -30.027042,
-    longitude: 148.113295,
+    description: 'Bushfire reported near debug location.',
+    latitude: debugCoordinates.latitude - 0.01,
+    longitude: debugCoordinates.longitude - 0.01,
+    latitudeDelta: 0.01,
+    longitudeDelta: 0.01,
   },
 ];
-
-
-/*
-###################################################################
-## -- SEARCH PAGE EXPORT CORE FUNCTIONS --                       ##
-###################################################################
-*/
 
 export default function SearchPage() {
   const { session } = useSession(); // Access session context for initial location
   const { theme } = useTheme(); // Access the current theme (light or dark)
-  
-  // Control of UseState Hooks
-  const [currentLocation, setCurrentLocation] = useState<Region | null>(
-    session.currentLocation 
-      ? {
+
+  // State hooks
+  const [currentLocation, setCurrentLocation] = useState<Region>(() => {
+    if (session.currentLocation) {
+      console.log('DEBUG: Initial location found in session:', session.currentLocation);
+      return {
         ...session.currentLocation,
-        latitudeDelta: 0.1,
-        longitudeDelta: 0.1,
-      }
-      : null
-  );
-  const [searchQuery, setSearchQuery] = useState(''); // For user search bar input
-  const [hazards, setHazards] = useState<Hazard[]>([]); // List of hazards
-  const [suggestions, setSuggestions] = useState<string[]>([]); // List for suggested addresses
-  const [loading, setLoading] = useState(false);
+        latitudeDelta: session.currentLocation.latitudeDelta || 0.01, // Include default
+        longitudeDelta: session.currentLocation.longitudeDelta || 0.01, // Include default
+      };
+    } else {
+      console.warn('DEBUG: No session location found, using default location.');
+      return DEFAULT_REGION;
+    }
+  });
 
-  // Placeholder for Firestore hazard fetch
+  const [searchQuery, setSearchQuery] = useState(''); // User input for search
+  const [hazards, setHazards] = useState<Hazard[]>([]); // Hazards to display
+  const [loading, setLoading] = useState(false); // Loading state
+  const [suggestions, setSuggestions] = useState<string[]>([]); // Address suggestions
+
+  /*
+  ###################################################################
+  ## -- CORE FETCH FUNCTIONS --                                   ##
+  ###################################################################
+  */
+
+  // Simulate fetching hazards
   const fetchHazards = async (location: Region): Promise<Hazard[]> => {
-    console.log(`Fetching hazards near ${location.latitude}, ${location.longitude}`);
-    await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate network delay
+    if (DEBUG_MODE) {
+      console.log(`DEBUG: Fetching hazards near ${location.latitude}, ${location.longitude}`);
+    }
 
-    // Debugging - return fake values if in debug mode
-    if (DEBUG_MODE === 1 && location.latitude === debugCoordinates.latitude && location.longitude === debugCoordinates.longitude) {
-      console.log('Retrieving debug hazards');
+    await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate delay
+
+    // Return debug hazards if in debug mode and using debug coordinates
+    if (DEBUG_MODE && location.latitude === debugCoordinates.latitude && location.longitude === debugCoordinates.longitude) {
+      console.log('DEBUG: Returning debug hazards for debug coordinates.');
       return debugHazards;
     }
 
-    // REMOVE WHEN FIREBASE IS LIVE
+    // Placeholder hazards (replace with Firestore fetch in production)
     return [
       {
         id: '1',
         type: 'Fallen Tree',
-        description: 'Bad luck, there is a simulated fallen tree here - FIRESTORE NOT YET IMPLEMENTED',
+        description: 'Simulated fallen tree near this location.',
         latitude: location.latitude + 0.03,
         longitude: location.longitude + 0.05,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
       },
       {
         id: '2',
         type: 'Fire',
-        description: 'Simulated Bushfire reported nearby - FIRESTORE NOT YET IMPLEMENTED',
+        description: 'Simulated bushfire near this location.',
         latitude: location.latitude - 0.07,
         longitude: location.longitude - 0.07,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
       },
     ];
   };
 
-  // Placeholder for fetching address suggestions
+  // Simulate fetching address suggestions
   const fetchAddressSuggestions = async (query: string): Promise<string[]> => {
-    console.log(`Fetching address suggestions for query: ${query}`);
-    await new Promise((resolve) => setTimeout(resolve, 500)); // Simulate network delay
-    return [
+    if (DEBUG_MODE) {
+      console.log(`DEBUG: Fetching address suggestions for query: ${query}`);
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 500)); // Simulate delay
+
+    // Return debug address as a suggestion
+    const baseSuggestions = [
       `${query} Street, City A`,
       `${query} Avenue, City B`,
       `${query} Road, City C`,
     ];
+
+    // Always include the typed address as the 4th suggestion
+    if (!baseSuggestions.includes(query)) {
+      baseSuggestions.splice(3, 0, query);
+    }
+
+    return baseSuggestions;
   };
 
-  // Handle update hazards based on the location
-  const updateHazards = useCallback(async (location: Region) => {
-    setLoading(true);
-    try {
-      if (DEBUG_MODE === 1) {
-        console.log(`DEBUG: session.currentLocation = ${JSON.stringify(session.currentLocation)}`); // Log session.currentLocation
-      };
-      const fetchedHazards = await fetchHazards(location);
-      setHazards(fetchedHazards);
-    } catch (e) {
-      console.error('Error fetching hazards: ', e);
-      Alert.alert('Error', 'Failed to fetch hazards.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  /*
+  ###################################################################
+  ## -- HANDLERS AND EFFECTS --                                   ##
+  ###################################################################
+  */
 
   // Handle search query changes
   const handleSearchChange = async (query: string) => {
@@ -153,84 +172,99 @@ export default function SearchPage() {
     }
   };
 
-  // Handle address selection from suggestions
+  // Handle address selection
   const handleAddressSelect = async (address: string) => {
-    console.log(`Address selected: ${address}`);
+    console.log(`DEBUG: Address selected: ${address}`);
     setSearchQuery(address);
     setSuggestions([]);
-
-    // PLACEHOLDER Simulate fetching coordinates from the address 
     let selectedLocation: Region;
 
-    if (DEBUG_MODE === 1 && address === debugAddress) {
-      console.log('Using debug coordinates for address');
-      selectedLocation = {
-        latitude: debugCoordinates.latitude,
-        longitude: debugCoordinates.longitude,
-        latitudeDelta: 0.1,
-        longitudeDelta: 0.1,
-      };
+    if (address === debugAddress && DEBUG_MODE) {
+      console.log('DEBUG: Using debug coordinates for selected address.');
+      selectedLocation = debugCoordinates;
     } else {
-      selectedLocation = {
-        latitude: currentLocation?.latitude || 0,
-        longitude: currentLocation?.longitude || 0,
-        latitudeDelta: 0.1,
-        longitudeDelta: 0.1,
-      };
+      selectedLocation = currentLocation; // Replace with geocoding logic if needed
     }
 
-    // Do the loading and setting business 
     setCurrentLocation(selectedLocation);
-    updateHazards(selectedLocation);
+    await updateHazards(selectedLocation);
   };
 
-  // GET LOCATION
-  useEffect(() => {
-    if (currentLocation) {
-      updateHazards(currentLocation); // First pass HAZARD load
+  // Trigger search when the search field loses focus
+  const handleBlur = () => {
+    if (searchQuery) {
+      handleAddressSelect(searchQuery);
     }
-  }, [currentLocation, updateHazards]);
+  };
+
+  // Show an alert for the three-dot menu (placeholder for future functionality)
+  const handleMenuPress = () => {
+    Alert.alert('Menu', 'Three-dot menu pressed.');
+  };
+
+  // Handle hazards update
+  const updateHazards = useCallback(async (location: Region) => {
+    setLoading(true);
+    try {
+      const fetchedHazards = await fetchHazards(location);
+      setHazards(fetchedHazards);
+      console.log('DEBUG: Hazards updated:', fetchedHazards);
+    } catch (e) {
+      Alert.alert('Error', 'Failed to fetch hazards.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   /*
   ###################################################################
-  ## -- THEME AND STYLING APPLICATION --                           ##
+  ## -- COMPONENT RENDERING --                                    ##
   ###################################################################
   */
-  
+
   return (
-    <SafeAreaView className="flex-1">
-      {/* Title Bar */}
-      <View style={styles.titleContainer}>
-        <Text style={styles.title}>Disaster Map</Text>
-      </View>
-      
-      {/* Search Bar */}
-      <View style={styles.searchBarContainer} >
+    <SafeAreaView style={styles.wrapper}>
+      <View style={styles.searchBarContainer}>
         <TextInput
           style={styles.searchInput}
           placeholder="Search by address or coordinates"
           placeholderTextColor={theme === 'dark' ? 'gray' : 'black'}
           value={searchQuery}
           onChangeText={handleSearchChange}
+          onBlur={handleBlur}
         />
-        <Ionicons 
-          name="ellipsis-vertical" 
-          size={24} 
+        {/* Three-dot menu */}
+        <Ionicons
+          name="ellipsis-vertical"
+          size={24}
           color={theme === 'dark' ? 'white' : 'black'}
-          styles={styles.menuIcon} 
+          onPress={handleMenuPress} // Trigger the menu action
+          style={styles.menuIcon}
         />
       </View>
 
-      {/* MAP View Control */}
+      {/* Suggestions */}
+      {suggestions.length > 0 && (
+        <FlatList
+          data={suggestions}
+          keyExtractor={(item, index) => `${item}-${index}`}
+          renderItem={({ item }) => (
+            <TouchableOpacity onPress={() => handleAddressSelect(item)} style={styles.suggestionItem}>
+              <Text style={styles.suggestionText}>{item}</Text>
+            </TouchableOpacity>
+          )}
+        />
+      )}
+
+      {/* Map */}
       <View style={styles.mapContainer}>
         <MapView
-          /*className="flex-1" //DEBUG REMOVED */
           style={styles.map}
-          initialRegion={currentLocation || undefined}
-          region={currentLocation || undefined}
+          showsUserLocation={true}
+          followsUserLocation={NAVIGATION_MODE ? true : false}
+          region={currentLocation} // Dynamically update the map region
           onRegionChangeComplete={(region) => setCurrentLocation(region)}
         >
-          {/* HAZARDS DISPLAY */}
           {hazards.map((hazard) => (
             <Marker
               key={hazard.id}
@@ -242,15 +276,16 @@ export default function SearchPage() {
         </MapView>
       </View>
 
-      {loading && <ActivityIndicator className="absolute top-1/2 left-1/2" size="large" />}
+      {/* Loading Indicator */}
+      {loading && <ActivityIndicator style={styles.loadingIndicator} size="large" />}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   wrapper: { flex: 1 },
-  titleContainer: { alignItems: 'center', marginTop: 10 },
-  title: { fontSize: 20, fontWeight: 'bold', color: 'black' },
+  mapContainer: { flex: 1 },
+  map: { width: '100%', height: '100%' },
   searchBarContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -264,25 +299,28 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
-  searchInput: { 
-    flex: 1, 
+  searchInput: {
+    flex: 1,
     padding: 8,
     fontSize: 16,
     color: 'black',
   },
   menuIcon: {
+    marginLeft: 10,
+  },
+  suggestionItem: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
+    backgroundColor: 'white',
+  },
+  suggestionText: {
+    fontSize: 16,
+    color: 'black',
+  },
+  loadingIndicator: {
     position: 'absolute',
-    right: 15, // Set distance from the right edge of the container
+    top: '50%',
+    left: '50%',
   },
-  mapContainer: { 
-    flex: 1, 
-  },
-  map: { 
-    width: '100%', 
-    height: '80%' },
-  loadingIndicator: { 
-    position: 'absolute', 
-    top: '50%', 
-    left: '50%' },
 });
-
