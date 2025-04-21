@@ -129,6 +129,9 @@ export default function SearchPage() {
   const updateHazards = useCallback(async (location: Region) => {
     setLoading(true);
     try {
+      if (DEBUG_MODE === 1) {
+        console.log(`DEBUG: session.currentLocation = ${JSON.stringify(session.currentLocation)}`); // Log session.currentLocation
+      };
       const fetchedHazards = await fetchHazards(location);
       setHazards(fetchedHazards);
     } catch (e) {
@@ -204,19 +207,25 @@ export default function SearchPage() {
       {/* Search Bar */}
       <View style={styles.searchBarContainer} >
         <TextInput
-          style={StyleSheet.searchInput}
+          style={styles.searchInput}
           placeholder="Search by address or coordinates"
           placeholderTextColor={theme === 'dark' ? 'gray' : 'black'}
           value={searchQuery}
           onChangeText={handleSearchChange}
         />
-        <Ionicons name="ellipsis-vertical" size={24} color={theme === 'dark' ? 'white' : 'black'} />
+        <Ionicons 
+          name="ellipsis-vertical" 
+          size={24} 
+          color={theme === 'dark' ? 'white' : 'black'}
+          styles={styles.menuIcon} 
+        />
       </View>
 
       {/* MAP View Control */}
       <View style={styles.mapContainer}>
         <MapView
-          className="flex-1"
+          /*className="flex-1" //DEBUG REMOVED */
+          style={styles.map}
           initialRegion={currentLocation || undefined}
           region={currentLocation || undefined}
           onRegionChangeComplete={(region) => setCurrentLocation(region)}
@@ -236,64 +245,6 @@ export default function SearchPage() {
       {loading && <ActivityIndicator className="absolute top-1/2 left-1/2" size="large" />}
     </SafeAreaView>
   );
-
-  // refactoring
-  // DEBUG <<< START REMOVED
-  /*
-  const searchBarClasses = theme === 'dark'
-    ? 'absolute top-12 left-4 right-4 z-10 bg-gray-800 text-white rounded-lg shadow p-3 flex-row items-center'
-    : 'absolute top-12 left-4 right-4 z-10 bg-white text-black rounded-lg shadow p-3 flex-row items-center';
-
-  return (
-    <View className="flex-1">
- 
-      <View className={searchBarClasses}>
-        <TextInput
-          className="flex-1 mr-2"
-          placeholder="Search by address or coordinates"
-          placeholderTextColor={theme === 'dark' ? 'gray' : 'black'}
-          value={searchQuery}
-          onChangeText={handleSearchChange}
-        />
-        <Ionicons name="ellipsis-vertical" size={24} color={theme === 'dark' ? 'white' : 'black'} />
- 
- 
-        {suggestions.length > 0 && (
-          <FlatList
-            className="absolute top-12 left-0 right-0 bg-white rounded-lg shadow z-20"
-            data={suggestions}
-            keyExtractor={(item, index) => index.toString()}
-            renderItem={({ item }) => (
-              <Pressable onPress={() => handleAddressSelect(item)} className="p-3 border-b border-gray-200">
-                <Text className="text-gray-700">{item}</Text>
-              </Pressable>
-            )}
-          />
-        )}
-      </View>
-  
- 
-      <MapView
-        className="flex-1"
-        initialRegion={currentLocation || undefined}
-        region={currentLocation || undefined}
-        onRegionChangeComplete={(region) => setCurrentLocation(region)}
-      >
-        {hazards.map((hazard) => (
-          <Marker
-            key={hazard.id}
-            coordinate={{ latitude: hazard.latitude, longitude: hazard.longitude }}
-            title={hazard.type}
-            description={hazard.description}
-          />
-        ))}
-      </MapView>
-  
-      {loading && <ActivityIndicator className="absolute top-1/2 left-1/2" size="large" />}
-    </View>
-  );
-  */
-  // DEBUG <<< START REMOVED
 }
 
 const styles = StyleSheet.create({
@@ -313,9 +264,25 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
-  searchInput: { flex: 1, marginRight: 10 },
-  mapContainer: { flex: 1 },
-  map: { width: '100%', height: '100%' },
-  loadingIndicator: { position: 'absolute', top: '50%', left: '50%' },
+  searchInput: { 
+    flex: 1, 
+    padding: 8,
+    fontSize: 16,
+    color: 'black',
+  },
+  menuIcon: {
+    position: 'absolute',
+    right: 15, // Set distance from the right edge of the container
+  },
+  mapContainer: { 
+    flex: 1, 
+  },
+  map: { 
+    width: '100%', 
+    height: '80%' },
+  loadingIndicator: { 
+    position: 'absolute', 
+    top: '50%', 
+    left: '50%' },
 });
 
