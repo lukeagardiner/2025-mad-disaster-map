@@ -4,7 +4,10 @@ import MapView, { Region } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useRouter } from 'expo-router';
+//import { useSession } from '@/theme/ThemeContext'; // Access the session context
+import { useSession } from '../../SessionContext'; // Access the session context
 import DeviceCountry from 'react-native-device-country';
+
 
 
 /** Additional installs **/
@@ -16,6 +19,7 @@ import DeviceCountry from 'react-native-device-country';
 
 // TODO
 // -- stick a reload button icon on the screen if map services disabled...
+// -- be able to configure timeouts from database
 
 /*
 ###################################################################
@@ -90,9 +94,7 @@ const getGenericLocationFromIP = async (): Promise<LocationData | null> => {
 const getGenericLocationByCountry = async (): Promise<LocationData | null> => {
   try {
     Alert.alert('Using country-based location', 'IP-based location failed, using country as a fallback.');
-    //await withTimeout(fetch('https://ipapi.co/json/'), 900);
-    //const result = await DeviceCountry.getCountryCode();
-    const result = await withTimeout(DeviceCountry.getCountryCode(), 900);
+    const result = await withTimeout(DeviceCountry.getCountryCode(), 2000); // alter this timeout in ms if required
     // result.code is the country code, e.g., "AU"
     if (result && result.code) {
       const countryLocations: { [key: string]: LocationData } = {
@@ -179,7 +181,7 @@ const getCurrentLocation = async (): Promise<LocationData | null> => {
 
     const loc = await withTimeout(Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High
-    }), 20000); // 10 second timeout
+    }), 20000); // 20 second timeout
 
     // (instead of return location)
     return {
@@ -198,13 +200,13 @@ const getCurrentLocation = async (): Promise<LocationData | null> => {
 
 /*
 ###################################################################
-## -- TAB / SCREEN CONTROL LOGIC --                              ##
+## -- TAB / SCREEN CONTROL WITH  SESSION LOGIC --                ##
 ###################################################################
 */
 
 // Home screen / Index block
 export default function Index() {
-  //const [location, setLocation] = useState<Region | null>(null);
+  const { session, updateSession } = useSession(); // Access session context
   const [location, setLocation] = useState<LocationData | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -229,14 +231,16 @@ export default function Index() {
               };
               // Populate the location object and stop the loading event / condition 
               setLocation(initialLocation);
+              updateSession({ currentLocation: initialLocation }); // adding session handling
               setLoading(false);
             },
             async () => {
               try {
                 // Fallback Default Location implementation
                 initialLocation =
-                  (await getGenericLocationFromIP()) || DEFAULT_REGION;
+                (await getGenericLocationFromIP()) || DEFAULT_REGION;
                 setLocation(initialLocation);
+                updateSession({ currentLocation: initialLocation }); // adding session handling
               } catch (e) {
                 console.warn("Web IP or default lookup failed", e);
                 setErrorMsg("Error getting location");
@@ -248,10 +252,47 @@ export default function Index() {
         } else {
           initialLocation = DEFAULT_REGION; // Web default handling
           setLocation(initialLocation);
+          updateSession({ currentLocation: initialLocation }); // adding session handling
           setLoading(false);
         }
       } else {
+        // New Code Debugging <<<< INSERT START HERE
+        // Try to set the precise location
+        const nativeLocation = await getCurrentLocation();       
+        if (nativeLocation) {
+          initialLocation = nativeLocation;
+        }
+        else {
+          // Set a fallback location if we can't
+          initialLocation = (await getGenericLocationFromIP()) || (await getGenericLocationByCountry()) 
+          || DEFAULT_REGION;
+        }
+        setLocation(initialLocation);
+        updateSession({ currentLocation: initialLocation });
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error('Error in location flow', error);
+      setErrorMsg('Error getting location.');
+      setLocation(DEFAULT_REGION);
+      updateSession({ currentLocation: DEFAULT_REGION}); // Extra default logic
+      setLoading(false);
+    }
+  }, [updateSession]); // Save session
+
+  // More session logic
+  useEffect(() => {
+    if (!session.currentLocation) {
+      loadLocation();
+    }
+  }, [session.currentLocation, loadLocation]);
+
+        // New Code Debugging <<<< INSERT ENDS HERE
+
+        // DEBUG - S <<<< OLD CODE PAUSING STARTS HERE
+        /*
         // Check location services before attempting to get location
+        
         const { locationServicesEnabled } =
           await Location.getProviderStatusAsync();
         if (!locationServicesEnabled) {
@@ -303,12 +344,16 @@ export default function Index() {
         setErrorMsg("Error getting generic location");
         setLoading(false);
     }
+    
   }, []);
+
 
   // Load location instruction - importanto
   useEffect(() => {
     loadLocation();
   }, [loadLocation]);
+  */
+  // DEBUG - S <<<< OLD CODE PAUSING STARTS HERE
 
   /*
   ###################################################################
@@ -320,7 +365,8 @@ export default function Index() {
     // View Loading Condition
     return (
       <View style={styles.wrapper}>
-        <ActivityIndicator size="large" style={{ flex: 1 }} />
+        { /*<ActivityIndicator size="large" style={{ flex: 1 }} /> // DEBUG CHANGED */ }
+        <ActivityIndicator size="large" />
       </View>
     );
   }
@@ -328,7 +374,7 @@ export default function Index() {
     // View Error Condition
     return (
       <View style={styles.wrapper}>
-        <Text style={{ color: "red", marginTop: 50, textAlign: "center" }}>
+        <Text style={{ color: "red", textAlign: "center", marginTop: 50 }}>
           {errorMsg}
         </Text>
       </View>
@@ -339,10 +385,7 @@ export default function Index() {
     // View Default Condition
     <View style={styles.wrapper}>
       {/*Settings Button*/}
-      <Pressable
-        onPress={() => router.push("/settings")}
-        style={styles.settingsButton}
-      >
+      <Pressable onPress={() => router.push("/settings")} style={styles.settingsButton}>
         <Ionicons name="settings" size={24} color="black" />
       </Pressable>
 
@@ -362,10 +405,7 @@ export default function Index() {
           />
         )}
       </View>
-      <Pressable
-        onPress={loadLocation}
-        style={styles.refreshButton}
-      >
+      <Pressable onPress={loadLocation} style={styles.refreshButton}>
         <Ionicons name="compass-outline" size={20} color="black" />
       </Pressable>
     </View>
@@ -379,6 +419,20 @@ export default function Index() {
 ###################################################################
 */
 
+// New Code Debugging <<<< INSERT START HERE
+const styles = StyleSheet.create({
+  wrapper: { flex: 1 },
+  titleContainer: { alignItems: 'center', marginTop: 47 },
+  title: { fontSize: 24, fontWeight: 'bold', color: 'black' },
+  mapContainer: { flex: 1 },
+  map: { width: '100%', height: '100%' },
+  settingsButton: { position: 'absolute', top: 50, left: 20, padding: 10, zIndex: 1 },
+  refreshButton: { position: 'absolute', bottom: '12%', right: '5%', padding: 15, zIndex: 1},
+});
+
+// New Code Debugging <<<< INSERT ENDS HERE
+// DEBUG <<<< Remove Existing START
+/*
 const styles = StyleSheet.create({
   wrapper: {
     flex: 1,
@@ -419,3 +473,6 @@ const styles = StyleSheet.create({
     zIndex: 1,
   }
 });
+*/
+// DEBUG <<<< Remove Existing END
+
