@@ -1,41 +1,63 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
+import React from 'react'
+import { SessionProvider } from '../SessionContext'
+import { ThemeProvider, useTheme } from '@/theme/ThemeContext';
+import { Stack, SplashScreen } from 'expo-router';
+import * as Font from 'expo-font';
+import { View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context'
+import { NavigationContainer } from '@react-navigation/native';
+import { useEffect, useState, ReactNode } from 'react';
 
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { Ionicons } from '@expo/vector-icons';
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
+type ThemedRootProps = {
+  children: ReactNode;
+};
+
+function ThemedRoot({ children }: ThemedRootProps) {
+  const { theme } = useTheme();
+  return (
+    <View style={{ flex: 1, backgroundColor: theme === 'dark' ? '#000' : '#fff' }}>
+      {children}
+    </View>
+  );
+}
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    if (loaded) {
+    SplashScreen.preventAutoHideAsync();
+
+    const loadFonts = async () => {
+      await Font.loadAsync({
+        SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+        NunitoRegular: require('../assets/fonts/Nunito-Regular.ttf'),
+        RobotoRegular: require('../assets/fonts/Roboto-Regular.ttf'),
+      });
+
+      setLoaded(true);
       SplashScreen.hideAsync();
-    }
-  }, [loaded]);
+    };
+
+    loadFonts();
+  }, []);
 
   if (!loaded) {
-    return null;
+    return null; // Show nothing while loading fonts
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-        <Stack.Screen name="settings" />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    /* Session support has been added */
+    <SessionProvider>
+      <ThemeProvider>
+        <ThemedRoot>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="+not-found" />
+            <Stack.Screen name="settings" />
+          </Stack>
+        </ThemedRoot>
+      </ThemeProvider>
+    </SessionProvider>
   );
 }
