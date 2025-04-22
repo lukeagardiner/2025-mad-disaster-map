@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { StyleSheet, View, SafeAreaView, TextInput, Text, ActivityIndicator, FlatList, TouchableOpacity, Alert } from 'react-native';
+import { StyleSheet, View, SafeAreaView, TextInput, Text, ActivityIndicator, FlatList, TouchableOpacity, Alert, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import MapView, { Marker, Region } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { debounce } from 'lodash';
@@ -223,62 +223,64 @@ export default function SearchPage() {
   */
 
   return (
-    <SafeAreaView style={styles.wrapper}>
-      <View style={styles.searchBarContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search by address or coordinates"
-          placeholderTextColor={theme === 'dark' ? 'gray' : 'black'}
-          value={searchQuery}
-          onChangeText={handleSearchChange}
-          onBlur={handleBlur}
-        />
-        {/* Three-dot menu */}
-        <Ionicons
-          name="ellipsis-vertical"
-          size={24}
-          color={theme === 'dark' ? 'white' : 'black'}
-          onPress={handleMenuPress} // Trigger the menu action
-          style={styles.menuIcon}
-        />
-      </View>
+    <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()} accessible={false}>
+      <SafeAreaView style={styles.wrapper}>
+        <View style={styles.searchBarContainer}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by address or coordinates"
+            placeholderTextColor={theme === 'dark' ? 'gray' : 'black'}
+            value={searchQuery}
+            onChangeText={handleSearchChange}
+            onBlur={handleBlur}
+          />
+          {/* Three-dot menu */}
+          <Ionicons
+            name="ellipsis-vertical"
+            size={24}
+            color={theme === 'dark' ? 'white' : 'black'}
+            onPress={handleMenuPress} // Trigger the menu action
+            style={styles.menuIcon}
+          />
+        </View>
 
-      {/* Suggestions */}
-      {suggestions.length > 0 && (
-        <FlatList
-          data={suggestions}
-          keyExtractor={(item, index) => `${item}-${index}`}
-          renderItem={({ item }) => (
-            <TouchableOpacity onPress={() => handleAddressSelect(item)} style={styles.suggestionItem}>
-              <Text style={styles.suggestionText}>{item}</Text>
-            </TouchableOpacity>
-          )}
-        />
-      )}
+        {/* Suggestions */}
+        {suggestions.length > 0 && (
+          <FlatList
+            data={suggestions}
+            keyExtractor={(item, index) => `${item}-${index}`}
+            renderItem={({ item }) => (
+              <TouchableOpacity onPress={() => handleAddressSelect(item)} style={styles.suggestionItem}>
+                <Text style={styles.suggestionText}>{item}</Text>
+              </TouchableOpacity>
+            )}
+          />
+        )}
 
-      {/* Map */}
-      <View style={styles.mapContainer}>
-        <MapView
-          style={styles.map}
-          showsUserLocation={true}
-          followsUserLocation={NAVIGATION_MODE ? true : false}
-          region={currentLocation} // Dynamically update the map region
-          onRegionChangeComplete={(region) => setCurrentLocation(region)}
-        >
-          {hazards.map((hazard) => (
-            <Marker
-              key={hazard.id}
-              coordinate={{ latitude: hazard.latitude, longitude: hazard.longitude }}
-              title={hazard.type}
-              description={hazard.description}
-            />
-          ))}
-        </MapView>
-      </View>
+        {/* Map */}
+        <View style={styles.mapContainer}>
+          <MapView
+            style={styles.map}
+            showsUserLocation={true}
+            followsUserLocation={NAVIGATION_MODE ? true : false}
+            region={currentLocation} // Dynamically update the map region
+            onRegionChangeComplete={(region) => setCurrentLocation(region)}
+          >
+            {hazards.map((hazard) => (
+              <Marker
+                key={hazard.id}
+                coordinate={{ latitude: hazard.latitude, longitude: hazard.longitude }}
+                title={hazard.type}
+                description={hazard.description}
+              />
+            ))}
+          </MapView>
+        </View>
 
-      {/* Loading Indicator */}
-      {loading && <ActivityIndicator style={styles.loadingIndicator} size="large" />}
-    </SafeAreaView>
+        {/* Loading Indicator */}
+        {loading && <ActivityIndicator style={styles.loadingIndicator} size="large" />}
+      </SafeAreaView>
+    </TouchableWithoutFeedback>
   );
 }
 

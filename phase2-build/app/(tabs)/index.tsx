@@ -7,7 +7,7 @@ import { router, useRouter } from 'expo-router';
 //import { useSession } from '@/theme/ThemeContext'; // Access the session context
 import { useSession } from '../../SessionContext'; // Access the session context
 import DeviceCountry from 'react-native-device-country';
-import { useTheme } from '@/theme/ThemeContext'; // Access theme controls
+//import { useTheme } from '@/theme/ThemeContext'; // Access theme controls
 
 
 /** Additional installs **/
@@ -385,4 +385,3 @@ const styles = StyleSheet.create({
   settingsButton: { position: 'absolute', top: 50, left: 20, padding: 10, zIndex: 1 },
   refreshButton: { position: 'absolute', bottom: '12%', right: '5%', padding: 15, zIndex: 1},
 });
-
