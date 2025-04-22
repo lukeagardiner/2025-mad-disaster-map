@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { StyleSheet, View, SafeAreaView, TextInput, Text, ActivityIndicator, FlatList, TouchableOpacity, Alert, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { StyleSheet, View, SafeAreaView, TextInput, Text, ActivityIndicator, FlatList, TouchableOpacity, Alert, TouchableWithoutFeedback, Keyboard, Pressable } from 'react-native';
 import MapView, { Marker, Region } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { debounce } from 'lodash';
 import { useSession } from '../../SessionContext'; // Access session context
 import { useTheme } from '@/theme/ThemeContext'; // Access theme controls
+import { router } from 'expo-router';
 
 /*
 ###################################################################
@@ -223,71 +224,95 @@ export default function SearchPage() {
   */
 
   return (
+    <View style={styles.pageContainer}>
+          {/*Settings Button*/}
+          <Pressable
+            onPress={() => {
+              console.log('Navigating to settings'); // Debug: Log navigation
+              router.push('/settings'); // Navigate to settings page
+            }}
+            style={styles.settingsButton}
+          >
+            <Ionicons name="settings" size={24} color="black" />
+          </Pressable>
     <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()} accessible={false}>
-      <SafeAreaView style={styles.wrapper}>
-        <View style={styles.searchBarContainer}>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search by address or coordinates"
-            placeholderTextColor={theme === 'dark' ? 'gray' : 'black'}
-            value={searchQuery}
-            onChangeText={handleSearchChange}
-            onBlur={handleBlur}
-          />
-          {/* Three-dot menu */}
-          <Ionicons
-            name="ellipsis-vertical"
-            size={24}
-            color={theme === 'dark' ? 'white' : 'black'}
-            onPress={handleMenuPress} // Trigger the menu action
-            style={styles.menuIcon}
-          />
-        </View>
-
-        {/* Suggestions */}
-        {suggestions.length > 0 && (
-          <FlatList
-            data={suggestions}
-            keyExtractor={(item, index) => `${item}-${index}`}
-            renderItem={({ item }) => (
-              <TouchableOpacity onPress={() => handleAddressSelect(item)} style={styles.suggestionItem}>
-                <Text style={styles.suggestionText}>{item}</Text>
+        <SafeAreaView style={styles.wrapper}>
+          <View style={styles.titleContainer}>
+            <Text style={styles.title}>Disaster Map</Text>
+          </View>
+          <View style={styles.searchBarContainer}>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search by address or coordinates"
+              placeholderTextColor={theme === 'dark' ? 'gray' : 'black'}
+              value={searchQuery}
+              onChangeText={handleSearchChange}
+              onBlur={handleBlur}
+            />
+            {/* Clear Button */}
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => {
+                setSearchQuery('');
+                setSuggestions([]); // Clear suggestions when clearing the input
+              }} style={styles.clearButton}>
+                <Ionicons name="close-circle" size={20} color="gray" />
               </TouchableOpacity>
             )}
-          />
-        )}
+            {/* Three-dot menu */}
+            <Ionicons
+              name="ellipsis-vertical"
+              size={24}
+              color={theme === 'dark' ? 'white' : 'black'}
+              onPress={handleMenuPress} // Trigger the menu action
+              style={styles.menuIcon}
+            />
+          </View>
 
-        {/* Map */}
-        <View style={styles.mapContainer}>
-          <MapView
-            style={styles.map}
-            showsUserLocation={true}
-            followsUserLocation={NAVIGATION_MODE ? true : false}
-            region={currentLocation} // Dynamically update the map region
-            onRegionChangeComplete={(region) => setCurrentLocation(region)}
-          >
-            {hazards.map((hazard) => (
-              <Marker
-                key={hazard.id}
-                coordinate={{ latitude: hazard.latitude, longitude: hazard.longitude }}
-                title={hazard.type}
-                description={hazard.description}
-              />
-            ))}
-          </MapView>
-        </View>
+          {/* Suggestions */}
+          {suggestions.length > 0 && (
+            <FlatList
+              data={suggestions}
+              keyExtractor={(item, index) => `${item}-${index}`}
+              renderItem={({ item }) => (
+                <TouchableOpacity onPress={() => handleAddressSelect(item)} style={styles.suggestionItem}>
+                  <Text style={styles.suggestionText}>{item}</Text>
+                </TouchableOpacity>
+              )}
+            />
+          )}
 
-        {/* Loading Indicator */}
-        {loading && <ActivityIndicator style={styles.loadingIndicator} size="large" />}
-      </SafeAreaView>
+          {/* Map */}
+          <View style={styles.mapContainer}>
+            <MapView
+              style={styles.map}
+              showsUserLocation={true}
+              followsUserLocation={NAVIGATION_MODE ? true : false}
+              region={currentLocation} // Dynamically update the map region
+              onRegionChangeComplete={(region) => setCurrentLocation(region)}
+            >
+              {hazards.map((hazard) => (
+                <Marker
+                  key={hazard.id}
+                  coordinate={{ latitude: hazard.latitude, longitude: hazard.longitude }}
+                  title={hazard.type}
+                  description={hazard.description}
+                />
+              ))}
+            </MapView>
+          </View>
+
+          {/* Loading Indicator */}
+          {loading && <ActivityIndicator style={styles.loadingIndicator} size="large" />}
+        </SafeAreaView>
     </TouchableWithoutFeedback>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrapper: { flex: 1 },
   mapContainer: { flex: 1 },
-  map: { width: '100%', height: '100%' },
+  map: { width: '100%', height: '100%', padding: 5},
   searchBarContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -295,6 +320,7 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     padding: 10,
     borderRadius: 8,
+    marginTop: '2%',
     backgroundColor: 'white',
     shadowColor: '#000',
     shadowOpacity: 0.2,
@@ -324,5 +350,31 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: '50%',
     left: '50%',
+  },
+  titleContainer: {
+    padding: 5,
+    alignItems: 'center',
+    marginTop: 5,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: 'black',
+    //fontFamily: 'Roboto',
+  },
+  pageContainer: {
+    flex: 1,
+  },
+  settingsButton: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    backgroundColor: '#eee',
+    borderRadius: 10,
+    padding: 10,
+    zIndex: 1,
+  },
+  clearButton: {
+    marginHorizontal: 5,
   },
 });
