@@ -3,6 +3,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
+import { getFirestore, collection, addDoc } from 'firebase/firestore';
+import { initializeApp } from "firebase/app";
+import { firebaseConfig } from '@/firebase';
+
+const app=initializeApp(firebaseConfig); // Initialize Firebase app
+const db = getFirestore(); // Initialize Firestore instance once
+
 /* 
   Also install these modules:  
 */
@@ -17,6 +24,7 @@ import { router } from 'expo-router';
 
 
 export default function ReportHazardScreen() {
+  const descriptionRef = useRef(null); // Reference to the description input field
   const [selectedHazard, setSelectedHazard] = useState(''); // State to track the selected hazard
   const [isDropdownOpen, setIsDropdownOpen] = useState(false); // Tracks dropdown state
   const [description, setDescription] = useState(''); // Tracks the description state
@@ -140,15 +148,15 @@ export default function ReportHazardScreen() {
             {isDropdownOpen && (
               <View style={styles.dropdownMenu}>
                 {/* Map through hazard options and create Pressable items */}
-                {hazardOptions.map((option, index) => (
+                {hazardOptions.map((hazardRef, index) => (
                   <Pressable
                     key={index}
                     style={{ padding: 10 }}
                     onPress={() => {
-                      setSelectedHazard(option); // Set selected hazard
+                      setSelectedHazard(hazardRef); // Set selected hazard
                       setIsDropdownOpen(false); // Close dropdown
                     }}>
-                    <Text style={styles.dropdownMenuText}>{option}</Text> 
+                    <Text style={styles.dropdownMenuText}>{hazardRef}</Text> 
                   </Pressable>
                 ))}
               </View>
@@ -174,6 +182,7 @@ export default function ReportHazardScreen() {
               style={styles.descriptionInput}
               placeholder="Enter a description (max 256 words)" // Placeholder text
               value={description}
+              ref={descriptionRef} // Reference to the description input field
               onChangeText={handleDescriptionChange} // Handle text input changes
               multiline // Allow multiline input
               maxLength={256} // Limit to 256 characters
@@ -223,6 +232,36 @@ export default function ReportHazardScreen() {
               />
             </View>
           )}
+          {/* Submit Button */}
+          <Pressable
+            style={styles.submitButton}
+            onPress={async () => {
+              // Firestore instance is already initialized at a higher scope
+              // Check if a hazard is selected and description is provided
+              if (!selectedHazard || !description) {
+                alert('Please select a hazard and provide a description.'); // Alert if not
+                return;
+              }
+              else{
+                try {
+                  // Add a new document to the "hazards" collection in Firestore
+                  await addDoc(collection(db, 'hazards'), {
+                    hazard: selectedHazard,
+                    description: description,
+                    images: images,
+                  });
+                  alert('Hazard reported successfully!'); // Alert on success
+                } catch (error) {
+                  console.error('Error adding document: ', error); // Log error
+                  alert('Error reporting hazard. Please try again.'); // Alert on error
+                }
+              }
+              // Reset state after submission
+              setSelectedHazard(''); // Clear selected hazard
+              setDescription(''); // Clear description
+            }}>
+            <Text style={styles.imageButtonText}>Submit Hazard</Text>
+          </Pressable>
         </View>
       </TouchableWithoutFeedback>
     </View>
@@ -237,6 +276,8 @@ const styles = StyleSheet.create({
     padding: 10,
     alignItems: 'center',
     marginTop: 47,
+    flex: 1,
+    position: 'relative',
   },
   settingsButton: {
     position: 'absolute',
@@ -336,6 +377,17 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 5,
+  },
+  submitButton:{
+    backgroundColor: '#28A745',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+    marginTop: 20,
+    width: '60%',
+    alignItems: 'center',
+    zIndex: 10,
+    position: 'relative',
   },
   imageButtonText: {
     color: 'white',
