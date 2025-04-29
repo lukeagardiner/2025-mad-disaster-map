@@ -3,6 +3,14 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
+import { getFirestore, collection, addDoc } from 'firebase/firestore';
+import { initializeApp } from "firebase/app";
+import { firebaseConfig } from '@/firebase';
+import Index from '.';
+
+const app=initializeApp(firebaseConfig); // Initialize Firebase app
+const db = getFirestore(); // Initialize Firestore instance once
+
 /* 
   Also install these modules:  
 */
@@ -17,13 +25,19 @@ import { router } from 'expo-router';
 
 
 export default function ReportHazardScreen() {
+  const GEOAPIFY_API_KEY = '9bf2f555990c4aa384b93daa6dd23757'; // API key for geocoding service
+
+  const descriptionRef = useRef(null); // Reference to the description input field
   const [selectedHazard, setSelectedHazard] = useState(''); // State to track the selected hazard
   const [isDropdownOpen, setIsDropdownOpen] = useState(false); // Tracks dropdown state
   const [description, setDescription] = useState(''); // Tracks the description state
+  const [address, setAddress] = useState(''); // Tracks the address state
+  const addressRef = useRef(null); // Reference to the address input field
   const [images, setImages] = useState<string[]>([]); // State to track the selected images (URIs)
   const hazardOptions = ['Flood', 'Fallen Tree', 'Fallen Powerline', 'Fire']; // Hazard options for the dropdown list
   const MAX_WORD_COUNT = 256; // Maximum word count for the description
   const MAX_IMAGES = 3; // Maximum number of images allowed
+  const [suggestions, setSuggestions] = useState([]); // State to store address suggestions
 
   // Function to clear the selected hazard when the user presses the "Clear Selection" button
   // This function resets the dropdown selection to the default value
@@ -35,6 +49,32 @@ export default function ReportHazardScreen() {
   const countWords = (text: string) => {
     const words = text.trim().split(/\s+/); 
     return words.length; // Return the word count
+  };
+
+  // Function to fetch address suggestions based on the input text
+  const debounceTimeout = useRef<NodeJS.Timeout | null>(null); // Ref to store debounce timeout
+
+  const addressSuggestions = (text: string) => {
+    if (debounceTimeout.current) {
+      clearTimeout(debounceTimeout.current); // Clear previous debounce
+    }
+    debounceTimeout.current = setTimeout(async () => {
+      try {
+        const response = await fetch(
+          `https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(text)}&filter=countrycode:au&limit=5&apiKey=${GEOAPIFY_API_KEY}`
+        );
+        const data = await response.json();
+        setSuggestions(data.features || []);
+      } catch (error) {
+        console.error('Geoapify address suggestion error:', error);
+      }
+    }, 300); // debounce delay
+  };
+
+  // Function to handle changes in the address input field
+  const handleAddressChange = (text: string) => {
+    addressSuggestions(text); // Call addressSuggestions function to fetch suggestions
+    setAddress(text); // Update the address state with the input text
   };
 
   // Function to handle changes in the description input field
@@ -102,6 +142,24 @@ export default function ReportHazardScreen() {
     );
   };
 
+  const geocodeAddress = async (address: string): Promise<{ lat: number; lon: number } | null> => {
+    try {
+      const response = await fetch(
+        `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(address)}&filter=countrycode:au&limit=1&apiKey=${GEOAPIFY_API_KEY}`
+      );
+      const data = await response.json();
+      if (data.features && data.features.length > 0) {
+        const { lat, lon } = data.features[0].properties;
+        return { lat, lon };
+      } else {
+        return null;
+      }
+    } catch (error) {
+      console.error('Geoapify geocoding error:', error);
+      return null;
+    }
+  };
+
   return (
     <View style={styles.pageContainer}>
       {/*Settings Button*/}
@@ -119,6 +177,38 @@ export default function ReportHazardScreen() {
         <View style={styles.titleContainer}>
           <Text style={styles.title}>Disaster Map</Text>
           <Text style={styles.text}>Report a Hazard Page</Text>
+          
+          {/* Enter Address Input field */}
+          {/* This input field is for entering the address of the hazard location */}
+          <View style={styles.addressContainer}>
+            <TextInput
+              style={styles.addressInput}
+              placeholder="Enter Address" // Placeholder text
+              value={address} // Bind to description state for address input
+              ref={addressRef} // Reference to the description input field
+              onChangeText={handleAddressChange} // Handle text input changes
+              multiline // Allow multiline input
+              maxLength={50} // Limit to 256 characters
+            />
+          </View>
+          {/* Address Suggestions List */}
+          {/* This FlatList displays address suggestions based on user input */}
+          {suggestions.length > 0 && (
+            <FlatList
+              data={suggestions}
+              keyExtractor={(item, index) => index.toString()}
+              renderItem={({ item }: { item: any }) => (
+                <Pressable
+                  onPress={() => {
+                    setAddress(item.properties.formatted); // Set address string
+                    setSuggestions([]); // Clear suggestions
+                  }}>
+                  <Text style={{ padding: 10 }}>{item.properties.formatted}</Text>
+                </Pressable>
+              )}
+              style={{ width: '80%', maxHeight: 200 }} // Style for the FlatList
+            />
+          )}
 
           {/* Custom Dropdown Container */}
           <View style={styles.dropdownContainer}>
@@ -140,15 +230,15 @@ export default function ReportHazardScreen() {
             {isDropdownOpen && (
               <View style={styles.dropdownMenu}>
                 {/* Map through hazard options and create Pressable items */}
-                {hazardOptions.map((option, index) => (
+                {hazardOptions.map((hazardRef, index) => (
                   <Pressable
                     key={index}
                     style={{ padding: 10 }}
                     onPress={() => {
-                      setSelectedHazard(option); // Set selected hazard
+                      setSelectedHazard(hazardRef); // Set selected hazard
                       setIsDropdownOpen(false); // Close dropdown
                     }}>
-                    <Text style={styles.dropdownMenuText}>{option}</Text> 
+                    <Text style={styles.dropdownMenuText}>{hazardRef}</Text> 
                   </Pressable>
                 ))}
               </View>
@@ -174,6 +264,7 @@ export default function ReportHazardScreen() {
               style={styles.descriptionInput}
               placeholder="Enter a description (max 256 words)" // Placeholder text
               value={description}
+              ref={descriptionRef} // Reference to the description input field
               onChangeText={handleDescriptionChange} // Handle text input changes
               multiline // Allow multiline input
               maxLength={256} // Limit to 256 characters
@@ -223,6 +314,48 @@ export default function ReportHazardScreen() {
               />
             </View>
           )}
+          {/* Submit Button */}
+          <Pressable
+            style={styles.submitButton}
+            onPress={async () => {
+              // Firestore instance is already initialized at a higher scope
+              // Check if a hazard is selected and description is provided
+              if (!selectedHazard || !description || !address) {
+                // Alert if no hazard or description is provided
+                alert('Please select a hazard and provide a description.');
+                return;
+              }
+              const coords = await geocodeAddress(address); // Geocode the address to get coordinates
+              if (!coords) {
+                alert('Invalid address. Please try again.'); // Alert if address is invalid
+                return;
+              }
+              // Prepare data to be submitted to Firestore
+                try {
+                  // Add a new document to the "hazards" collection in Firestore
+                  await addDoc(collection(db, 'hazards'), {
+                    hazard: selectedHazard,
+                    description: description,
+                    images: images,
+                    location: {
+                      latitude: coords.lat,
+                      longitude: coords.lon,
+                    },
+                    timestamp: new Date(), // Add a timestamp
+                  });
+                  alert('Hazard reported successfully!'); // Alert on success
+                } catch (error) {
+                  console.error('Error adding document: ', error); // Log error
+                  alert('Error reporting hazard. Please try again.'); // Alert on error
+                }
+              // Reset state after submission
+              setSelectedHazard(''); // Clear selected hazard
+              setDescription(''); // Clear description
+              setAddress(''); // Clear address
+              setImages([]); // Clear images
+            }}>
+            <Text style={styles.imageButtonText}>Submit Hazard</Text>
+          </Pressable>
         </View>
       </TouchableWithoutFeedback>
     </View>
@@ -237,6 +370,8 @@ const styles = StyleSheet.create({
     padding: 10,
     alignItems: 'center',
     marginTop: 47,
+    flex: 1,
+    position: 'relative',
   },
   settingsButton: {
     position: 'absolute',
@@ -269,7 +404,7 @@ const styles = StyleSheet.create({
   },
   dropdownContainer: {
     width: '80%',
-    marginTop: 40,
+    marginTop: '5%',
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 5,
@@ -337,6 +472,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 5,
   },
+  submitButton:{
+    backgroundColor: '#28A745',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+    marginTop: 20,
+    width: '60%',
+    alignItems: 'center',
+    zIndex: 10,
+    position: 'relative',
+  },
   imageButtonText: {
     color: 'white',
     fontSize: 16,
@@ -364,5 +510,39 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
     borderRadius: 12,
     zIndex: 1,
+  },
+  addressInput: {
+    height: 40,
+    width: '75%',
+    borderColor: '#000',
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    borderRadius: 5,
+    fontFamily: 'Roboto',
+    textAlignVertical: 'center',
+  },
+  addressContainer: {
+    marginTop: '5%',
+    alignItems: 'center',
+    width: '100%',    
+  },
+  suggestionList: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    width: '75%',
+    maxHeight: 150,
+    marginTop: 4,
+    zIndex: 10, // make sure it shows above other elements
+  },
+  suggestionItem: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  suggestionText: {
+    fontSize: 14,
+    color: 'black',
   },
 });
