@@ -7,7 +7,7 @@ import { router, useRouter } from 'expo-router';
 //import { useSession } from '@/theme/ThemeContext'; // Access the session context
 import { useSession } from '../../SessionContext'; // Access the session context
 import DeviceCountry from 'react-native-device-country';
-import { useTheme } from '@/theme/ThemeContext'; // Access theme controls
+//import { useTheme } from '@/theme/ThemeContext'; // Access theme controls
 
 
 /** Additional installs **/
@@ -378,11 +378,10 @@ export default function Index() {
 // New Code Debugging <<<< INSERT START HERE
 const styles = StyleSheet.create({
   wrapper: { flex: 1 },
-  titleContainer: { alignItems: 'center', marginTop: 47 },
+  titleContainer: { alignItems: 'center', marginTop: '13%', padding: 5},
   title: { fontSize: 24, fontWeight: 'bold', color: 'black' },
   mapContainer: { flex: 1 },
-  map: { width: '100%', height: '100%' },
+  map: { width: '100%', height: '100%', padding: 5 },
   settingsButton: { position: 'absolute', top: 50, left: 20, padding: 10, zIndex: 1 },
-  refreshButton: { position: 'absolute', bottom: '12%', right: '5%', padding: 15, zIndex: 1},
+  refreshButton: { position: 'absolute', bottom: '12%', right: '5%', padding: 5, zIndex: 1},
 });
-
