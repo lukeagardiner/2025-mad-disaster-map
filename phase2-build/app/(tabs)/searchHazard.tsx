@@ -6,7 +6,14 @@ import { debounce } from 'lodash';
 import { useSession } from '../../SessionContext'; // Access session context
 import { useTheme } from '@/theme/ThemeContext'; // Access theme controls
 import { router } from 'expo-router';
+import { collection, getDoc, getDocs, getFirestore } from 'firebase/firestore';
+import { initializeApp } from 'firebase/app';
+import { firebaseConfig } from '@/firebase';
 
+
+const app=initializeApp(firebaseConfig); // Initialize Firebase app
+const db = getFirestore(); // Initialize Firestore instance once
+const GEOAPIFY_API_KEY = '9bf2f555990c4aa384b93daa6dd23757'; // API key for geocoding service
 /*
 ###################################################################
 ## -- DEBUG MODE AND CONSTANTS --                                ##
@@ -89,6 +96,7 @@ export default function SearchPage() {
   const [hazards, setHazards] = useState<Hazard[]>([]); // Hazards to display
   const [loading, setLoading] = useState(false); // Loading state
   const [suggestions, setSuggestions] = useState<string[]>([]); // Address suggestions
+  const mapRef = React.useRef<MapView>(null); // Reference to the map view
 
   /*
   ###################################################################
@@ -110,14 +118,23 @@ export default function SearchPage() {
       return debugHazards;
     }
 
+    const fetchUsers = async () => {
+      try{
+        const query = await getDocs(collection(db, 'hazards'));
+      }catch{
+        console.error('Error fetching hazards from Firestore:', Error);
+        Alert.alert('Error', 'Failed to fetch hazards from Firestore.');
+        return []; // Return empty array on error
+      }
+    }
     // Placeholder hazards (replace with Firestore fetch in production)
     return [
       {
         id: '1',
         type: 'Fallen Tree',
         description: 'Simulated fallen tree near this location.',
-        latitude: location.latitude + 0.03,
-        longitude: location.longitude + 0.05,
+        latitude: location.latitude -34.91074005,
+        longitude: location.longitude + 138.66779440945777,
         latitudeDelta: 0.01,
         longitudeDelta: 0.01,
       },
@@ -133,27 +150,58 @@ export default function SearchPage() {
     ];
   };
 
-  // Simulate fetching address suggestions
+  // Fetch address suggestions from Geoapify API
+  // Note: This function is debounced to limit API calls while typing
   const fetchAddressSuggestions = async (query: string): Promise<string[]> => {
-    if (DEBUG_MODE) {
-      console.log(`DEBUG: Fetching address suggestions for query: ${query}`);
+    try {
+      const response = await fetch(
+        `https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(query)}&limit=5&filter=countrycode:au&format=json&apiKey=${GEOAPIFY_API_KEY}`
+      );
+      const data = await response.json();
+  
+      if (data.results && data.results.length > 0) {
+        return data.results.map((result: any) => result.formatted);
+      } else {
+        return [];
+      }
+    } catch (error) {
+      console.error('Error fetching suggestions:', error);
+      return [];
     }
+  };
 
-    await new Promise((resolve) => setTimeout(resolve, 500)); // Simulate delay
+  const debouncedFetchSuggestions = useCallback(
+    debounce(async (query: string) => {
+      const fetchedSuggestions = await fetchAddressSuggestions(query);
+      setSuggestions(fetchedSuggestions);
+    }, 300),
+    []
+  );
 
-    // Return debug address as a suggestion
-    const baseSuggestions = [
-      `${query} Street, City A`,
-      `${query} Avenue, City B`,
-      `${query} Road, City C`,
-    ];
-
-    // Always include the typed address as the 4th suggestion
-    if (!baseSuggestions.includes(query)) {
-      baseSuggestions.splice(3, 0, query);
+  const geocodeAddress = async (address: string): Promise<Region | null> => {
+    try {
+      const response = await fetch(
+        `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(address)}&filter=countrycode:au&apiKey=${GEOAPIFY_API_KEY}`
+      );
+      const data = await response.json();
+  
+      if (data.features && data.features.length > 0) {
+        const { lat, lon } = data.features[0].properties;
+        return {
+          latitude: lat,
+          longitude: lon,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        };
+      } else {
+        Alert.alert('Address not found', 'Unable to geocode the selected address.');
+        return null;
+      }
+    } catch (error) {
+      console.error('Geocoding error:', error);
+      Alert.alert('Error', 'Failed to geocode the address.');
+      return null;
     }
-
-    return baseSuggestions;
   };
 
   /*
@@ -166,8 +214,7 @@ export default function SearchPage() {
   const handleSearchChange = async (query: string) => {
     setSearchQuery(query);
     if (query.length > 2) {
-      const fetchedSuggestions = await fetchAddressSuggestions(query);
-      setSuggestions(fetchedSuggestions);
+      debouncedFetchSuggestions(query); // Fetch suggestions with debounce
     } else {
       setSuggestions([]);
     }
@@ -178,17 +225,20 @@ export default function SearchPage() {
     console.log(`DEBUG: Address selected: ${address}`);
     setSearchQuery(address);
     setSuggestions([]);
-    let selectedLocation: Region;
+
+    let selectedLocation: Region | null;
 
     if (address === debugAddress && DEBUG_MODE) {
       console.log('DEBUG: Using debug coordinates for selected address.');
       selectedLocation = debugCoordinates;
     } else {
-      selectedLocation = currentLocation; // Replace with geocoding logic if needed
+      selectedLocation = await geocodeAddress(address); // Geocoding live address
     }
-
-    setCurrentLocation(selectedLocation);
-    await updateHazards(selectedLocation);
+    if(selectedLocation){
+      setCurrentLocation(selectedLocation);
+      mapRef.current?.animateToRegion(selectedLocation, 1000); // Smoothly pan to location
+      await updateHazards(selectedLocation);
+    }
   };
 
   // Trigger search when the search field loses focus
@@ -284,6 +334,7 @@ export default function SearchPage() {
           {/* Map */}
           <View style={styles.mapContainer}>
             <MapView
+              ref={mapRef}
               style={styles.map}
               showsUserLocation={true}
               followsUserLocation={NAVIGATION_MODE ? true : false}
