@@ -2,11 +2,35 @@ import { StyleSheet, Platform, View, TouchableWithoutFeedback, Keyboard, Text, T
 import { useState } from 'react';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword, signOut } from "firebase/auth";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Need to install npm install firebase
+
+import '../../firebase.js'; // Import Firebase configuration
+import { set } from 'lodash';
+
+const {firebaseConfig} = require('../../firebase.js'); // Import Firebase configuration
+
 
 const INITIAL_EMAIL = ''; // Initial email state
 const INITIAL_ERROR = ''; // Initial error state
 
 export default function LoginScreen() {
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  //const analytics = getAnalytics(app);
+  const auth = getAuth(app); // Initialize Firebase Authentication
+
+  const [loginout, setLoginout] = useState(false); // State to track login/logout status
+  const [signup, setSignup] = useState(false); // State to track sign-up status
+  const [pword, setPword] = useState(''); // State to track password input
+
   const [email, setEmail] = useState(INITIAL_EMAIL);
   const [error, setError] = useState(INITIAL_ERROR);
   const MAX_LENGTH = 50;
@@ -37,6 +61,22 @@ export default function LoginScreen() {
     if (error === '' && email !== '') {
       console.log('Email submitted for login:', email);
       // TODO: Add Firebase login logic here
+      setEmail(email); // Set email state for login
+      setPword(pword); // Set password state for login
+      setLoginout(true); // Set login/logout state to true
+      signInWithEmailAndPassword(auth, email, pword)
+        .then((userCredential) => { // Sign in successful
+          const user = userCredential.user; // Get user information
+          console.log('User logged in:', user); // Debug: Log user information
+          <Text>Login successful</Text>; // Display success message
+          router.push('/(tabs)'); // Navigate to the main tabs page after successful login
+        })
+        .catch((error) => { // Handle sign-in errors
+          const errorCode = error.code; // Get error code
+          const errorMessage = error.message; // Get error message
+          console.log('Error signing in:', errorCode + " " + errorMessage); // Debug: Log error information
+          setError(errorMessage); // Set error state to display message
+        });
     } else {
       console.log('Invalid email or error present');
     }
@@ -46,8 +86,47 @@ export default function LoginScreen() {
     if (error === '' && email !== '') {
       console.log('Email submitted for sign up:', email);
       // TODO: Add Firebase sign-up logic here
+      setEmail(email); // Set email state for sign-up
+      setPword(pword); // Set password state for sign-up
+      createUserWithEmailAndPassword(auth, email, pword)
+        .then((userCredential) => { // Sign in successful
+          const user = userCredential.user; // Get user information
+          console.log('User created:', user); // Debug: Log user information
+          setLoginout(false); // Reset login/logout state
+        })
+        .catch((error) => { // Handle sign-in errors
+          const errorCode = error.code; // Get error code
+          const errorMessage = error.message; // Get error message
+          console.log('Error creating user:', errorCode + " " + errorMessage); // Debug: Log error information
+          setError(errorMessage); // Set error state to display message
+        });       
     } else {
       console.log('Invalid email or error present');
+    }
+  };
+
+  /// Function to handle logout button press
+  const handleLogout = () => {
+    console.log('Logging out...'); // Debug: Log logout action
+    if (loginout) { // Check if user is logged in
+      setLoginout(false); // Reset login/logout state
+      signOut(auth) // Sign out from Firebase Authentication
+        .then(() => { // Sign out successful
+          console.log('User logged out'); // Debug: Log user logout
+          setEmail(INITIAL_EMAIL); // Reset email state
+          setPword(''); // Reset password state
+          setError(INITIAL_ERROR); // Reset error state
+        })
+        .catch((error) => { // Handle sign-out errors
+          const errorCode = error.code; // Get error code
+          const errorMessage = error.message; // Get error message
+          console.log('Error signing out:', errorCode + " " + errorMessage); // Debug: Log error information
+        });
+      router.push('/'); // Navigate to the main page after logout
+    }
+    else{
+      console.log('User is not logged in'); // Debug: Log user not logged in
+      setError('User is not logged in'); // Set error state to display message
     }
   };
 
@@ -82,6 +161,13 @@ export default function LoginScreen() {
               keyboardType="email-address"
               autoCapitalize="none"
             />
+            <TextInput style={styles.emailInput}
+              placeholder="Password"
+              value={pword}
+              onChangeText={setPword}
+              secureTextEntry={true} // Secure text entry for password input
+              autoCapitalize="none"
+            />
             
             <View style={styles.loginButtons}>
               <TouchableOpacity
@@ -93,6 +179,16 @@ export default function LoginScreen() {
                 activeOpacity={0.8}
               >
                 <Text style={styles.buttonText}>Login</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleLogout}
+                style={[styles.button, { backgroundColor: '#FF6347' }]}
+                /// Logout button with conditional styling based on error and email state
+                /// If error is present or email is empty, button is disabled and greyed out
+                disabled={error !== '' || email === ''}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.buttonText}>Logout</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.button, { backgroundColor: '#28A745' }]}
@@ -156,6 +252,7 @@ const styles = StyleSheet.create({
     marginLeft: '5%',
     borderRadius: 5,
     fontFamily: 'Roboto',
+    marginTop: 2
   },
   errorText: {
     color: 'red',

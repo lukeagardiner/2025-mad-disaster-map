@@ -1,20 +1,431 @@
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { StyleSheet, View, SafeAreaView, TextInput, Text, ActivityIndicator, FlatList, TouchableOpacity, Alert, TouchableWithoutFeedback, Keyboard, Pressable } from 'react-native';
+import MapView, { Marker, Region } from 'react-native-maps';
+import { Ionicons } from '@expo/vector-icons';
+import { debounce } from 'lodash';
+import { useSession } from '../../SessionContext'; // Access session context
+import { useTheme } from '@/theme/ThemeContext'; // Access theme controls
+import { router } from 'expo-router';
+import { collection, getDoc, getDocs, getFirestore } from 'firebase/firestore';
+import { initializeApp } from 'firebase/app';
+import { firebaseConfig } from '@/firebase';
 
-export default function SettingsScreen() {
+
+const app=initializeApp(firebaseConfig); // Initialize Firebase app
+const db = getFirestore(); // Initialize Firestore instance once
+const GEOAPIFY_API_KEY = '9bf2f555990c4aa384b93daa6dd23757'; // API key for geocoding service
+/*
+###################################################################
+## -- DEBUG MODE AND CONSTANTS --                                ##
+###################################################################
+*/
+
+const DEBUG_MODE = 1; // Set to 1 to enable debug mode, 0 for production mode
+const NAVIGATION_MODE = 0;
+
+// Default location (Brisbane, Australia)
+const DEFAULT_REGION: Region = {
+  latitude: -27.4698,
+  longitude: 153.0251,
+  latitudeDelta: 0.01,
+  longitudeDelta: 0.01,
+};
+
+// Test address and coordinates for debug mode
+const debugAddress = "14 Sutherland St Walgett NSW, AUSTRALIA";
+const debugCoordinates: Region = {
+  latitude: -30.026042,
+  longitude: 148.114295,
+  latitudeDelta: 0.01,
+  longitudeDelta: 0.01,
+};
+
+// Hazard object data structure
+type Hazard = {
+  id: string;
+  type: string;
+  description: string;
+  latitude: number;
+  longitude: number;
+  latitudeDelta: number;
+  longitudeDelta: number;
+};
+
+// Simulated debug hazards
+const debugHazards: Hazard[] = [
+  {
+    id: 'debug1',
+    type: 'Flood',
+    description: 'Flooding reported near debug location.',
+    latitude: debugCoordinates.latitude + 0.01,
+    longitude: debugCoordinates.longitude + 0.01,
+    latitudeDelta: 0.01,
+    longitudeDelta: 0.01,
+  },
+  {
+    id: 'debug2',
+    type: 'Fire',
+    description: 'Bushfire reported near debug location.',
+    latitude: debugCoordinates.latitude - 0.01,
+    longitude: debugCoordinates.longitude - 0.01,
+    latitudeDelta: 0.01,
+    longitudeDelta: 0.01,
+  },
+];
+
+export default function SearchPage() {
+  const { session } = useSession(); // Access session context for initial location
+  const { theme } = useTheme(); // Access the current theme (light or dark)
+
+  // State hooks
+  const [currentLocation, setCurrentLocation] = useState<Region>(() => {
+    if (session.currentLocation) {
+      console.log('DEBUG: Initial location found in session:', session.currentLocation);
+      return {
+        ...session.currentLocation,
+        latitudeDelta: session.currentLocation.latitudeDelta || 0.01, // Include default
+        longitudeDelta: session.currentLocation.longitudeDelta || 0.01, // Include default
+      };
+    } else {
+      console.warn('DEBUG: No session location found, using default location.');
+      return DEFAULT_REGION;
+    }
+  });
+
+  const [searchQuery, setSearchQuery] = useState(''); // User input for search
+  const [hazards, setHazards] = useState<Hazard[]>([]); // Hazards to display
+  const [loading, setLoading] = useState(false); // Loading state
+  const [suggestions, setSuggestions] = useState<string[]>([]); // Address suggestions
+  const mapRef = React.useRef<MapView>(null); // Reference to the map view
+
+  /*
+  ###################################################################
+  ## -- CORE FETCH FUNCTIONS --                                   ##
+  ###################################################################
+  */
+
+  // Simulate fetching hazards
+  const fetchHazards = async (location: Region): Promise<Hazard[]> => {
+    if (DEBUG_MODE) {
+      console.log(`DEBUG: Fetching hazards near ${location.latitude}, ${location.longitude}`);
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate delay
+
+    // Return debug hazards if in debug mode and using debug coordinates
+    if (DEBUG_MODE && location.latitude === debugCoordinates.latitude && location.longitude === debugCoordinates.longitude) {
+      console.log('DEBUG: Returning debug hazards for debug coordinates.');
+      return debugHazards;
+    }
+
+    const fetchUsers = async () => {
+      try{
+        const query = await getDocs(collection(db, 'hazards'));
+      }catch{
+        console.error('Error fetching hazards from Firestore:', Error);
+        Alert.alert('Error', 'Failed to fetch hazards from Firestore.');
+        return []; // Return empty array on error
+      }
+    }
+    // Placeholder hazards (replace with Firestore fetch in production)
+    return [
+      {
+        id: '1',
+        type: 'Fallen Tree',
+        description: 'Simulated fallen tree near this location.',
+        latitude: location.latitude -34.91074005,
+        longitude: location.longitude + 138.66779440945777,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      },
+      {
+        id: '2',
+        type: 'Fire',
+        description: 'Simulated bushfire near this location.',
+        latitude: location.latitude - 0.07,
+        longitude: location.longitude - 0.07,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      },
+    ];
+  };
+
+  // Fetch address suggestions from Geoapify API
+  // Note: This function is debounced to limit API calls while typing
+  const fetchAddressSuggestions = async (query: string): Promise<string[]> => {
+    try {
+      const response = await fetch(
+        `https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(query)}&limit=5&filter=countrycode:au&format=json&apiKey=${GEOAPIFY_API_KEY}`
+      );
+      const data = await response.json();
+  
+      if (data.results && data.results.length > 0) {
+        return data.results.map((result: any) => result.formatted);
+      } else {
+        return [];
+      }
+    } catch (error) {
+      console.error('Error fetching suggestions:', error);
+      return [];
+    }
+  };
+
+  const debouncedFetchSuggestions = useCallback(
+    debounce(async (query: string) => {
+      const fetchedSuggestions = await fetchAddressSuggestions(query);
+      setSuggestions(fetchedSuggestions);
+    }, 300),
+    []
+  );
+
+  const geocodeAddress = async (address: string): Promise<Region | null> => {
+    try {
+      const response = await fetch(
+        `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(address)}&filter=countrycode:au&apiKey=${GEOAPIFY_API_KEY}`
+      );
+      const data = await response.json();
+  
+      if (data.features && data.features.length > 0) {
+        const { lat, lon } = data.features[0].properties;
+        return {
+          latitude: lat,
+          longitude: lon,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        };
+      } else {
+        Alert.alert('Address not found', 'Unable to geocode the selected address.');
+        return null;
+      }
+    } catch (error) {
+      console.error('Geocoding error:', error);
+      Alert.alert('Error', 'Failed to geocode the address.');
+      return null;
+    }
+  };
+
+  /*
+  ###################################################################
+  ## -- HANDLERS AND EFFECTS --                                   ##
+  ###################################################################
+  */
+
+  // Handle search query changes
+  const handleSearchChange = async (query: string) => {
+    setSearchQuery(query);
+    if (query.length > 2) {
+      debouncedFetchSuggestions(query); // Fetch suggestions with debounce
+    } else {
+      setSuggestions([]);
+    }
+  };
+
+  // Handle address selection
+  const handleAddressSelect = async (address: string) => {
+    console.log(`DEBUG: Address selected: ${address}`);
+    setSearchQuery(address);
+    setSuggestions([]);
+
+    let selectedLocation: Region | null;
+
+    if (address === debugAddress && DEBUG_MODE) {
+      console.log('DEBUG: Using debug coordinates for selected address.');
+      selectedLocation = debugCoordinates;
+    } else {
+      selectedLocation = await geocodeAddress(address); // Geocoding live address
+    }
+    if(selectedLocation){
+      setCurrentLocation(selectedLocation);
+      mapRef.current?.animateToRegion(selectedLocation, 1000); // Smoothly pan to location
+      await updateHazards(selectedLocation);
+    }
+  };
+
+  // Trigger search when the search field loses focus
+  const handleBlur = () => {
+    if (searchQuery) {
+      handleAddressSelect(searchQuery);
+    }
+  };
+
+  // Show an alert for the three-dot menu (placeholder for future functionality)
+  const handleMenuPress = () => {
+    Alert.alert('Menu', 'Three-dot menu pressed.');
+  };
+
+  // Handle hazards update
+  const updateHazards = useCallback(async (location: Region) => {
+    setLoading(true);
+    try {
+      const fetchedHazards = await fetchHazards(location);
+      setHazards(fetchedHazards);
+      console.log('DEBUG: Hazards updated:', fetchedHazards);
+    } catch (e) {
+      Alert.alert('Error', 'Failed to fetch hazards.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  /*
+  ###################################################################
+  ## -- COMPONENT RENDERING --                                    ##
+  ###################################################################
+  */
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.text}>Search a Hazard Page</Text>
+    <View style={styles.pageContainer}>
+          {/*Settings Button*/}
+          <Pressable
+            onPress={() => {
+              console.log('Navigating to settings'); // Debug: Log navigation
+              router.push('/settings'); // Navigate to settings page
+            }}
+            style={styles.settingsButton}
+          >
+            <Ionicons name="settings" size={24} color="black" />
+          </Pressable>
+    <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()} accessible={false}>
+        <SafeAreaView style={styles.wrapper}>
+          <View style={styles.titleContainer}>
+            <Text style={styles.title}>Disaster Map</Text>
+          </View>
+          <View style={styles.searchBarContainer}>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search by address or coordinates"
+              placeholderTextColor={theme === 'dark' ? 'gray' : 'black'}
+              value={searchQuery}
+              onChangeText={handleSearchChange}
+              onBlur={handleBlur}
+            />
+            {/* Clear Button */}
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => {
+                setSearchQuery('');
+                setSuggestions([]); // Clear suggestions when clearing the input
+              }} style={styles.clearButton}>
+                <Ionicons name="close-circle" size={20} color="gray" />
+              </TouchableOpacity>
+            )}
+            {/* Three-dot menu */}
+            <Ionicons
+              name="ellipsis-vertical"
+              size={24}
+              color={theme === 'dark' ? 'white' : 'black'}
+              onPress={handleMenuPress} // Trigger the menu action
+              style={styles.menuIcon}
+            />
+          </View>
+
+          {/* Suggestions */}
+          {suggestions.length > 0 && (
+            <FlatList
+              data={suggestions}
+              keyExtractor={(item, index) => `${item}-${index}`}
+              renderItem={({ item }) => (
+                <TouchableOpacity onPress={() => handleAddressSelect(item)} style={styles.suggestionItem}>
+                  <Text style={styles.suggestionText}>{item}</Text>
+                </TouchableOpacity>
+              )}
+            />
+          )}
+
+          {/* Map */}
+          <View style={styles.mapContainer}>
+            <MapView
+              ref={mapRef}
+              style={styles.map}
+              showsUserLocation={true}
+              followsUserLocation={NAVIGATION_MODE ? true : false}
+              region={currentLocation} // Dynamically update the map region
+              onRegionChangeComplete={(region) => setCurrentLocation(region)}
+            >
+              {hazards.map((hazard) => (
+                <Marker
+                  key={hazard.id}
+                  coordinate={{ latitude: hazard.latitude, longitude: hazard.longitude }}
+                  title={hazard.type}
+                  description={hazard.description}
+                />
+              ))}
+            </MapView>
+          </View>
+
+          {/* Loading Indicator */}
+          {loading && <ActivityIndicator style={styles.loadingIndicator} size="large" />}
+        </SafeAreaView>
+    </TouchableWithoutFeedback>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  wrapper: { flex: 1 },
+  mapContainer: { flex: 1 },
+  map: { width: '100%', height: '100%', padding: 5},
+  searchBarContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    marginHorizontal: 10,
+    marginVertical: 10,
+    padding: 10,
+    borderRadius: 8,
+    marginTop: '2%',
+    backgroundColor: 'white',
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
-  text: {
-    fontSize: 20,
+  searchInput: {
+    flex: 1,
+    padding: 8,
+    fontSize: 16,
+    color: 'black',
+  },
+  menuIcon: {
+    marginLeft: 10,
+  },
+  suggestionItem: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
+    backgroundColor: 'white',
+  },
+  suggestionText: {
+    fontSize: 16,
+    color: 'black',
+  },
+  loadingIndicator: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+  },
+  titleContainer: {
+    padding: 5,
+    alignItems: 'center',
+    marginTop: 5,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: 'black',
+    //fontFamily: 'Roboto',
+  },
+  pageContainer: {
+    flex: 1,
+  },
+  settingsButton: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    backgroundColor: '#eee',
+    borderRadius: 10,
+    padding: 10,
+    zIndex: 1,
+  },
+  clearButton: {
+    marginHorizontal: 5,
   },
 });
