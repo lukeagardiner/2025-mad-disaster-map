@@ -1,3 +1,5 @@
+// make sure dependency has been run: >>>
+// npm install firebase 
 const firebaseConfig = {
     apiKey: "AIzaSyDAinUpt834IYi65xwecaWXtJl647sH8jA",
     authDomain: "disaster-map-a4cf1.firebaseapp.com",
