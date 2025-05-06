@@ -9,13 +9,17 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "This app needs your location to show relevant map features"
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "permissions": ["ACCESS_FINE_LOCATION"]
     },
     "web": {
       "bundler": "metro",
@@ -32,13 +36,7 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ]
-    ],
-    "experiments": {
-      "typedRoutes": true
-    },
-    "expo": {
-    "plugins": [
+      ],
       [
         "expo-location",
         {
@@ -52,14 +50,8 @@
         }
       ]
     ],
-    "ios": {
-      "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "This app needs your location to show relevant map features"
-      }
-    },
-    "android": {
-      "permissions": ["ACCESS_FINE_LOCATION"]
+    "experiments": {
+      "typedRoutes": true
     }
-  }
   }
 }

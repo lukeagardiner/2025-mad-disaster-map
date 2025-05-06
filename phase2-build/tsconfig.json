@@ -6,13 +6,26 @@
       "@/*": [
         "./*"
       ]
-    }
+    },
+    "types": [
+      "babel__core",
+      "babel__generator",
+      "babel__template",
+      "babel__traverse",
+      "eslint",
+      "estree",
+      "geojson",
+      "hammerjs",
+      "json-schema",
+      "node",
+      "prop-types"
+    ]
   },
   "include": [
     "**/*.ts",
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts",
-    "nativewind-env.d.ts",
+    "nativewind-env.d.ts"
   ]
 }
