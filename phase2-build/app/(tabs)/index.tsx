@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { StyleSheet, View, Text, ActivityIndicator, Alert, Pressable, Platform } from 'react-native';
-import MapView, { Region } from 'react-native-maps';
+import { StyleSheet, View, Text, ActivityIndicator, Alert, Pressable, Platform, Switch } from 'react-native';
+//import MapView, { Region } from 'react-native-maps';
+import MapView from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useRouter } from 'expo-router';
@@ -215,11 +216,50 @@ export default function Index() {
   const [location, setLocation] = useState<LocationData | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [permissionSwitch, setPermissionSwitch] = useState(false);
 
   // Location Flow Control logic for useEffect...
   const loadLocation = useCallback(async () => {
     setLoading(true);
     setErrorMsg(null);
+
+    try {
+      //const { status } = await Location.requestForegroundPermissionsAsync();
+      //updateSession({ locationPermission: status });
+      const permissionResponse = await Location.requestForegroundPermissionsAsync();
+      updateSession({ locationPermission: permissionResponse });
+
+      //if (status === 'granted') {
+      if (permissionResponse.status === 'granted') {
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+        const newLocation = {
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        };
+        setLocation(newLocation);
+        updateSession({ currentLocation: newLocation });
+      } else if (permissionResponse.status === 'denied') {
+        throw new Error('Permissions denied.');
+      }
+    } catch (error) {
+      console.error(error);
+      setErrorMsg(error instanceof Error ? error.message : 'An unknown error occurred.');
+      setLocation(DEFAULT_REGION); // Fallback to default location
+      updateSession({ currentLocation: DEFAULT_REGION });
+    } finally {
+      setLoading(false);
+    }
+  }, [updateSession]);
+
+  useEffect(() => {
+    if (!session.currentLocation) {
+      loadLocation(); // Call loadLocation on mount if no location is in the session
+    }
+  }, [session.currentLocation, loadLocation]);
+    /* sceptically changing this block... START*/
+    /*
     let initialLocation: LocationData | null = null;
 
     try {
@@ -310,6 +350,8 @@ export default function Index() {
       loadLocation(); // Call loadLocation on mount if no location is in the session
     }
   }, [session.currentLocation, loadLocation]);
+  */
+ /* sceptically changing this block... END*/
 
   /*
   ###################################################################
@@ -333,6 +375,17 @@ export default function Index() {
         <Text style={{ color: "red", textAlign: "center", marginTop: 50 }}>
           {errorMsg}
         </Text>
+        {/* Add Switch to enable permissions */}
+        <View style={styles.permissionsContainer}>
+          <Text style={{marginBottom: 10}}>Enable Location Permissions:</Text>
+          <Switch
+            value={permissionSwitch}
+            onValueChange={(value) => {
+              setPermissionSwitch(value);
+              if (value) loadLocation();  // should trigger a reload of location
+            }}
+          />
+        </View>
       </View>
     );
   }
@@ -384,4 +437,5 @@ const styles = StyleSheet.create({
   map: { width: '100%', height: '100%', padding: 5 },
   settingsButton: { position: 'absolute', top: 50, left: 20, padding: 10, zIndex: 1 },
   refreshButton: { position: 'absolute', bottom: '12%', right: '5%', padding: 5, zIndex: 1},
+  permissionsContainer: { alignItems: 'center', marginTop: 20 },
 });
