@@ -23,10 +23,8 @@ const db = getFirestore(); // Initialize Firestore instance once
 //-be triggered from pin in index or search page
 //-acquire dynamic hazard def from firestore
 
-
 export default function ReportHazardScreen() {
   const GEOAPIFY_API_KEY = '9bf2f555990c4aa384b93daa6dd23757'; // API key for geocoding service
-
   const descriptionRef = useRef(null); // Reference to the description input field
   const [selectedHazard, setSelectedHazard] = useState(''); // State to track the selected hazard
   const [isDropdownOpen, setIsDropdownOpen] = useState(false); // Tracks dropdown state

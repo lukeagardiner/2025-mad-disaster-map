@@ -20,7 +20,7 @@ const GEOAPIFY_API_KEY = '9bf2f555990c4aa384b93daa6dd23757'; // API key for geoc
 ###################################################################
 */
 
-const DEBUG_MODE = 1; // Set to 1 to enable debug mode, 0 for production mode
+const DEBUG_MODE = 0; // Set to 1 to enable debug mode, 0 for production mode
 const NAVIGATION_MODE = 0;
 
 // Default location (Brisbane, Australia)
@@ -52,7 +52,7 @@ type Hazard = {
 };
 
 // Simulated debug hazards
-const debugHazards: Hazard[] = [
+/*const debugHazards: Hazard[] = [
   {
     id: 'debug1',
     type: 'Flood',
@@ -71,7 +71,7 @@ const debugHazards: Hazard[] = [
     latitudeDelta: 0.01,
     longitudeDelta: 0.01,
   },
-];
+];*/
 
 export default function SearchPage() {
   const { session } = useSession(); // Access session context for initial location
@@ -105,49 +105,37 @@ export default function SearchPage() {
   */
 
   // Simulate fetching hazards
-  const fetchHazards = async (location: Region): Promise<Hazard[]> => {
-    if (DEBUG_MODE) {
-      console.log(`DEBUG: Fetching hazards near ${location.latitude}, ${location.longitude}`);
-    }
+  const fetchHazards = async (): Promise<Hazard[]> => {
+    try {
+      const querySnapshot = await getDocs(collection(db, 'hazards'));
+      const hazardList: Hazard[] = [];
 
-    await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate delay
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        if (
+          data.latitude !== undefined &&
+          data.longitude !== undefined &&
+          data.type &&
+          data.description
+        ) {
+          hazardList.push({
+            id: doc.id,
+            type: data.type,
+            description: data.description,
+            latitude: data.latitude,
+            longitude: data.longitude,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          });
+        }
+      });
 
-    // Return debug hazards if in debug mode and using debug coordinates
-    if (DEBUG_MODE && location.latitude === debugCoordinates.latitude && location.longitude === debugCoordinates.longitude) {
-      console.log('DEBUG: Returning debug hazards for debug coordinates.');
-      return debugHazards;
+      return hazardList;
+    } catch (error) {
+      console.error('Error fetching hazards from Firestore:', error);
+      Alert.alert('Error', 'Failed to fetch hazards from Firestore.');
+      return [];
     }
-
-    const fetchUsers = async () => {
-      try{
-        const query = await getDocs(collection(db, 'hazards'));
-      }catch{
-        console.error('Error fetching hazards from Firestore:', Error);
-        Alert.alert('Error', 'Failed to fetch hazards from Firestore.');
-        return []; // Return empty array on error
-      }
-    }
-    // Placeholder hazards (replace with Firestore fetch in production)
-    return [
-      {
-        id: '1',
-        type: 'Fallen Tree',
-        description: 'Simulated fallen tree near this location.',
-        latitude: location.latitude -34.91074005,
-        longitude: location.longitude + 138.66779440945777,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      },
-      {
-        id: '2',
-        type: 'Fire',
-        description: 'Simulated bushfire near this location.',
-        latitude: location.latitude - 0.07,
-        longitude: location.longitude - 0.07,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      },
-    ];
   };
 
   // Fetch address suggestions from Geoapify API
@@ -267,6 +255,24 @@ export default function SearchPage() {
     }
   }, []);
 
+  const debouncedUpdateHazards = useCallback(
+    debounce((region: Region) => {
+      updateHazards(region);
+    }, 1000), // 1000ms debounce time
+    [updateHazards]
+  );
+
+  useEffect(() => {
+    const loadHazards = async () => {
+      setLoading(true);
+      const fetchedHazards = await fetchHazards();
+      setHazards(fetchedHazards);
+      setLoading(false);
+    };
+
+    loadHazards();
+  }, []);
+
   /*
   ###################################################################
   ## -- COMPONENT RENDERING --                                    ##
@@ -339,14 +345,17 @@ export default function SearchPage() {
               showsUserLocation={true}
               followsUserLocation={NAVIGATION_MODE ? true : false}
               region={currentLocation} // Dynamically update the map region
-              onRegionChangeComplete={(region) => setCurrentLocation(region)}
+              onRegionChangeComplete={(region) => {
+                setCurrentLocation(region);
+                updateHazards(region); // <-- Fetch hazards when the map stops moving
+              }}
             >
               {hazards.map((hazard) => (
                 <Marker
-                  key={hazard.id}
-                  coordinate={{ latitude: hazard.latitude, longitude: hazard.longitude }}
-                  title={hazard.type}
-                  description={hazard.description}
+                  key={data.id}
+                  coordinate={{ latitude: data.latitude, longitude: data.longitude }}
+                  title={data.type}
+                  description={data.description}
                 />
               ))}
             </MapView>
@@ -418,7 +427,7 @@ const styles = StyleSheet.create({
   },
   settingsButton: {
     position: 'absolute',
-    top: 50,
+    top: 10,
     left: 20,
     backgroundColor: '#eee',
     borderRadius: 10,

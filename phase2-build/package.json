@@ -24,6 +24,7 @@
     "axios": "^1.9.0",
     "expo": "~52.0.46",
     "expo-blur": "~14.0.3",
+    "expo-cli": "^6.3.6",
     "expo-constants": "~17.0.8",
     "expo-font": "~13.0.4",
     "expo-haptics": "~14.0.1",
