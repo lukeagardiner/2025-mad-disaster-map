@@ -10,6 +10,11 @@ import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword, si
 // https://firebase.google.com/docs/web/setup#available-libraries
 
 // Need to install npm install firebase
+// Add a transaction table and I'll add a globalint table to the db
+// Needs session logic - secure token - auth token that we generate and clear at logout...
+// firebase needs this or at least we need to build future capacity for this behaviour
+
+
 
 import '../../firebase.js'; // Import Firebase configuration
 import { set } from 'lodash';

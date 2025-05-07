@@ -17,6 +17,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage'; // For cac
 // - include application warnings keys / explanation in ABOUT
 // - logout button
 // - generate local list of known events even if map can't load
+// - delete account / delete identifiable data
+// - SOME OF THESE CAN GO TO ADMIN PAGE IN THE FUTURE
 
 /*
 ###################################################################
