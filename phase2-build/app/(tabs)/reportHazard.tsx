@@ -23,10 +23,8 @@ const db = getFirestore(); // Initialize Firestore instance once
 //-be triggered from pin in index or search page
 //-acquire dynamic hazard def from firestore
 
-
 export default function ReportHazardScreen() {
   const GEOAPIFY_API_KEY = '9bf2f555990c4aa384b93daa6dd23757'; // API key for geocoding service
-
   const descriptionRef = useRef(null); // Reference to the description input field
   const [selectedHazard, setSelectedHazard] = useState(''); // State to track the selected hazard
   const [isDropdownOpen, setIsDropdownOpen] = useState(false); // Tracks dropdown state
@@ -320,6 +318,7 @@ export default function ReportHazardScreen() {
             onPress={async () => {
               // Firestore instance is already initialized at a higher scope
               // Check if a hazard is selected and description is provided
+              alert('Hazard is being processed');
               if (!selectedHazard || !description || !address) {
                 // Alert if no hazard or description is provided
                 alert('Please select a hazard and provide a description.');
@@ -341,6 +340,8 @@ export default function ReportHazardScreen() {
                       latitude: coords.lat,
                       longitude: coords.lon,
                     },
+                    upvotes: 0,
+                    downvotes: 0,
                     timestamp: new Date(), // Add a timestamp
                   });
                   alert('Hazard reported successfully!'); // Alert on success
