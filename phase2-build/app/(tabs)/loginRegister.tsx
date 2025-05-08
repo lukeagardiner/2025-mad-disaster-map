@@ -5,9 +5,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/theme/ThemeContext';
 import { useSession } from '../../SessionContext';
 // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
+import { initializeApp, FirebaseError } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
-import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword, signOut, initializeAuth } from "firebase/auth";
+import { app } from '../../firebase.js'; // Import Firebase app
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -25,7 +26,6 @@ import { set } from 'lodash';
 
 const {firebaseConfig} = require('../../firebase.js'); // Import Firebase configuration
 
-
 const INITIAL_EMAIL = ''; // Initial email state
 const INITIAL_ERROR = ''; // Initial error state
 
@@ -34,7 +34,6 @@ const INITIAL_ERROR = ''; // Initial error state
 ## -- PAGE AND EVENT LOGIC --                                    ##
 ###################################################################
 */
-
 
 export default function LoginScreen() {
   // theme
@@ -91,8 +90,9 @@ export default function LoginScreen() {
           updateSession ({
             type: 'authenticated',
             sessionStartTime: new Date().toISOString(),
-            expiry: new Date(Date.now() + 3600 * 1000).toISOString(), // set session to expire in one hour
+            expiry: new Date(Date.now() + 3600 * 1000).toISOString(), // 1 hour expiry
           });
+          setLoginout(true);
           <Text>Login successful</Text>; // Display success message
           router.push('/(tabs)'); // Navigate to the main tabs page after successful login
         })
@@ -106,55 +106,71 @@ export default function LoginScreen() {
       console.log('Invalid email or error present');
     }
   };
+
   /// Function to handle sign-up button press
   const handleSignUp = async() => {
     if (error === '' && email !== '') {
       console.log('Email submitted for sign up:', email);
-      // TODO: Add Firebase sign-up logic here
-      setEmail(email); // Set email state for sign-up
-      setPword(pword); // Set password state for sign-up
-      createUserWithEmailAndPassword(auth, email, pword)
-        .then((userCredential) => { // Sign in successful
-          const user = userCredential.user; // Get user information
-          console.log('User created:', user); // Debug: Log user information
-          setLoginout(false); // Reset login/logout state
-        })
-        .catch((error) => { // Handle sign-in errors
-          const errorCode = error.code; // Get error code
-          const errorMessage = error.message; // Get error message
-          console.log('Error creating user:', errorCode + " " + errorMessage); // Debug: Log error information
-          setError(errorMessage); // Set error state to display message
-        });       
+      try {
+        // Attempts to create user with firebase auth
+        const userCredential = await createUserWithEmailAndPassword(auth, email, pword)
+        const user = userCredential.user
+        console.log('User creation susccessful: ', user);
+
+        // Need to also set this in the session
+        updateSession({
+          type: 'authenticated',
+          sessionStartTime: new Date().toISOString(),
+          expiry: new Date(Date.now() + 3600 * 1000).toISOString(), //  Sets expiry for 1 hour into the future
+        });
+
+        // Display success popup
+        setSignup(true);
+
+        // Re-route to main application page (index.tsx)
+        // router.push('/(tabs)'); // this is now delayed
+      }
+      catch (error) {
+        // Firebase object/app specific errors
+        if (error instanceof FirebaseError) {
+          const errorCode = error.code; 
+          const errorMessage = error.message; 
+        console.log('Error creating user:', errorCode + " " + errorMessage); // Debug: Log error information
+        setError(errorMessage); // Set error state to display message
+        }
+        else {
+          // Catch all
+          console.log('Unexpected error:', error); // Log unexpected errors
+          setError('An unexpected error occurred. Please try again.'); // Fallback error message
+        }
+      }       
     } else {
       console.log('Invalid email or error present');
     }
   };
 
   /// Function to handle logout button press
-  const handleLogout = () => {
-    console.log('Logging out...'); // Debug: Log logout action
-    if (loginout) { // Check if user is logged in
+  // New Async logout
+  // Handle logout
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      clearSession();
+      setEmail(INITIAL_EMAIL);
+      setPword('');
+      setError(INITIAL_ERROR);
       setLoginout(false); // Reset login/logout state
-      clearSession(); // Clear session context
-      console.log('Session Type:', session.type);
-      signOut(auth) // Sign out from Firebase Authentication
-        .then(() => { // Sign out successful
-          console.log('User logged out'); // Debug: Log user logout
-          setEmail(INITIAL_EMAIL); // Reset email state
-          setPword(''); // Reset password state
-          setError(INITIAL_ERROR); // Reset error state
-        })
-        .catch((error) => { // Handle sign-out errors
-          const errorCode = error.code; // Get error code
-          const errorMessage = error.message; // Get error message
-          console.log('Error signing out:', errorCode + " " + errorMessage); // Debug: Log error information
-        });
-      router.push('/'); // Navigate to the main page after logout
+      router.push('/'); // Navigate to login page
+    } catch (error) {
+      console.error('Error signing out:', error);
+      setError('Logout failed. Please try again.');
     }
-    else{
-      console.log('User is not logged in'); // Debug: Log user not logged in
-      setError('User is not logged in'); // Set error state to display message
-    }
+  };
+
+  /// Makes sure the popup button behaves after register then pushes user to index or home
+  const handleDismissSignupPopup = async() => {
+    setSignup(false);
+    router.push('/');
   };
 
   /*
@@ -175,6 +191,22 @@ export default function LoginScreen() {
         style={styles.settingsButton}>
         <Ionicons name="settings" size={24} color={theme === 'dark' ? '#fff' : '#000000'} />
       </Pressable>
+      
+      {/* Popup for Registration Success */}
+      {signup && (
+        <View style={styles.popupOverlay}>
+          <View style={styles.popupContainer}>
+            <Text style={styles.popupText}>Registration successful! User logged in.</Text>
+            <TouchableOpacity
+              style={styles.buttonPopupClose}
+              onPress={handleDismissSignupPopup} // Hide the popup when dismissed} // Hide the popup when dismissed
+            >
+              <Text style={styles.popupCloseText}>Dismiss</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
       <KeyboardAvoidingView 
         style={{ flex: 1 }}
         //KeyboardAvoidingView to adjust view when keyboard is open
@@ -415,5 +447,49 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textDecorationLine: 'underline', // Optional: Adds an underline to make it look like a link
     fontFamily: 'Roboto', // Optional: Keep consistent with other styles
+  },
+  popupOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Dim background
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10, // Ensure popup is above all other elements
+  },
+  popupContainer: {
+    position: 'absolute',
+    top: '40%',
+    left: '10%',
+    right: '10%',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  popupText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  buttonPopupClose: {
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    backgroundColor: '#3385FF',
+    borderRadius: 5,
+  },
+  popupCloseText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });
