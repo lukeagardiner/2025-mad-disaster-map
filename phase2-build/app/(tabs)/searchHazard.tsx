@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { StyleSheet, View, SafeAreaView, TextInput, Text, ActivityIndicator, FlatList, TouchableOpacity, Alert, TouchableWithoutFeedback, Keyboard, Pressable } from 'react-native';
 import MapView, { Marker, Region } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,7 +7,7 @@ import { debounce } from 'lodash';
 import { useSession } from '../../SessionContext'; // Access session context
 import { useTheme } from '@/theme/ThemeContext'; // Access theme controls
 import { router } from 'expo-router';
-import { collection, getDoc, getDocs, getFirestore } from 'firebase/firestore';
+import { collection, getDoc, getDocs, getFirestore, Timestamp, query, where } from 'firebase/firestore';
 import { initializeApp } from 'firebase/app';
 import { firebaseConfig } from '@/firebase';
 
@@ -20,7 +21,7 @@ const GEOAPIFY_API_KEY = '9bf2f555990c4aa384b93daa6dd23757'; // API key for geoc
 ###################################################################
 */
 
-const DEBUG_MODE = 1; // Set to 1 to enable debug mode, 0 for production mode
+const DEBUG_MODE = 0; // Set to 1 to enable debug mode, 0 for production mode
 const NAVIGATION_MODE = 0;
 
 // Default location (Brisbane, Australia)
@@ -52,7 +53,7 @@ type Hazard = {
 };
 
 // Simulated debug hazards
-const debugHazards: Hazard[] = [
+/*const debugHazards: Hazard[] = [
   {
     id: 'debug1',
     type: 'Flood',
@@ -71,7 +72,7 @@ const debugHazards: Hazard[] = [
     latitudeDelta: 0.01,
     longitudeDelta: 0.01,
   },
-];
+];*/
 
 export default function SearchPage() {
   const { session } = useSession(); // Access session context for initial location
@@ -105,49 +106,59 @@ export default function SearchPage() {
   */
 
   // Simulate fetching hazards
-  const fetchHazards = async (location: Region): Promise<Hazard[]> => {
-    if (DEBUG_MODE) {
-      console.log(`DEBUG: Fetching hazards near ${location.latitude}, ${location.longitude}`);
-    }
+  const fetchHazards = async (region: Region): Promise<Hazard[]> => {
+      try {
+          const now = new Date();
+          const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000); // 3 days ago in milliseconds
+          const hazardsQuery = query(
+              collection(db, 'hazards'),
+              where('timestamp', '>=', threeDaysAgo), // Filter for hazards within the last 3 days
+              where('downvotes', '<=', 5) // Filter for hazards with 5 or fewer downvotes
+          );
 
-    await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate delay
+          const querySnapshot = await getDocs(hazardsQuery);
+          const hazardList: Hazard[] = [];
 
-    // Return debug hazards if in debug mode and using debug coordinates
-    if (DEBUG_MODE && location.latitude === debugCoordinates.latitude && location.longitude === debugCoordinates.longitude) {
-      console.log('DEBUG: Returning debug hazards for debug coordinates.');
-      return debugHazards;
-    }
+          // Log the number of documents and the actual data
+          console.log(`Fetched ${querySnapshot.size} hazards from Firestore`);
 
-    const fetchUsers = async () => {
-      try{
-        const query = await getDocs(collection(db, 'hazards'));
-      }catch{
-        console.error('Error fetching hazards from Firestore:', Error);
-        Alert.alert('Error', 'Failed to fetch hazards from Firestore.');
-        return []; // Return empty array on error
+          // Iterate through each document and log its data
+          querySnapshot.forEach((doc) => {
+              console.log(`Document ID: ${doc.id}`);
+              console.log('Document Data:', doc.data()); // Logs the actual document data
+
+              const data = doc.data();
+              const location = data.location;
+
+              if (
+                  location &&
+                  typeof location.latitude === 'number' &&
+                  typeof location.longitude === 'number' &&
+                  typeof data.hazard === 'string' &&
+                  typeof data.description === 'string'
+              ) {
+                  hazardList.push({
+                      id: doc.id,
+                      type: data.hazard,
+                      description: data.description,
+                      latitude: location.latitude,
+                      longitude: location.longitude,
+                      latitudeDelta: 0.01,
+                      longitudeDelta: 0.01,
+                      upvotes: data.upvotes,
+                      downvotes: data.downvotes
+                  });
+              } else {
+                  console.log(`Invalid data in document ${doc.id}`);
+              }
+          });
+
+          return hazardList;
+      } catch (error) {
+          console.error('Error fetching hazards from Firestore:', error);
+          Alert.alert('Error', 'Failed to fetch hazards from Firestore.');
+          return [];
       }
-    }
-    // Placeholder hazards (replace with Firestore fetch in production)
-    return [
-      {
-        id: '1',
-        type: 'Fallen Tree',
-        description: 'Simulated fallen tree near this location.',
-        latitude: location.latitude -34.91074005,
-        longitude: location.longitude + 138.66779440945777,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      },
-      {
-        id: '2',
-        type: 'Fire',
-        description: 'Simulated bushfire near this location.',
-        latitude: location.latitude - 0.07,
-        longitude: location.longitude - 0.07,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      },
-    ];
   };
 
   // Fetch address suggestions from Geoapify API
@@ -257,7 +268,7 @@ export default function SearchPage() {
   const updateHazards = useCallback(async (location: Region) => {
     setLoading(true);
     try {
-      const fetchedHazards = await fetchHazards(location);
+      const fetchedHazards = await fetchHazards(location); // Now passing the region
       setHazards(fetchedHazards);
       console.log('DEBUG: Hazards updated:', fetchedHazards);
     } catch (e) {
@@ -266,6 +277,26 @@ export default function SearchPage() {
       setLoading(false);
     }
   }, []);
+
+  const debouncedUpdateHazards = useCallback(
+    debounce((region: Region) => {
+      updateHazards(region);
+    }, 10000), // 10000ms debounce time
+    [updateHazards]
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      const loadHazards = async () => {
+        setLoading(true);
+        const fetchedHazards = await fetchHazards();
+        setHazards(fetchedHazards);
+        setLoading(false);
+      };
+
+      loadHazards();
+    }, [])
+  );
 
   /*
   ###################################################################
@@ -333,20 +364,28 @@ export default function SearchPage() {
 
           {/* Map */}
           <View style={styles.mapContainer}>
+          console.log("Hazards: ", hazards);
             <MapView
               ref={mapRef}
               style={styles.map}
               showsUserLocation={true}
               followsUserLocation={NAVIGATION_MODE ? true : false}
               region={currentLocation} // Dynamically update the map region
-              onRegionChangeComplete={(region) => setCurrentLocation(region)}
+              onRegionChangeComplete={(region) => {
+                setCurrentLocation(region);
+                debouncedUpdateHazards(region); // <-- Fetch hazards when the map stops moving
+              }}
             >
               {hazards.map((hazard) => (
                 <Marker
                   key={hazard.id}
                   coordinate={{ latitude: hazard.latitude, longitude: hazard.longitude }}
                   title={hazard.type}
-                  description={hazard.description}
+                  /*description={hazard.description}*/
+                  onPress={() => {
+                      console.log('Navigating to viewHazard with ID:', hazard.id);
+                      router.push({ pathname: '/viewHazard', params: { hazardId: hazard.id } });
+                  }}
                 />
               ))}
             </MapView>
@@ -418,7 +457,7 @@ const styles = StyleSheet.create({
   },
   settingsButton: {
     position: 'absolute',
-    top: 50,
+    top: 10,
     left: 20,
     backgroundColor: '#eee',
     borderRadius: 10,
