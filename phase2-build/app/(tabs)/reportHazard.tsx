@@ -318,6 +318,7 @@ export default function ReportHazardScreen() {
             onPress={async () => {
               // Firestore instance is already initialized at a higher scope
               // Check if a hazard is selected and description is provided
+              alert('Hazard is being processed');
               if (!selectedHazard || !description || !address) {
                 // Alert if no hazard or description is provided
                 alert('Please select a hazard and provide a description.');
@@ -339,6 +340,8 @@ export default function ReportHazardScreen() {
                       latitude: coords.lat,
                       longitude: coords.lon,
                     },
+                    upvotes: 0,
+                    downvotes: 0,
                     timestamp: new Date(), // Add a timestamp
                   });
                   alert('Hazard reported successfully!'); // Alert on success

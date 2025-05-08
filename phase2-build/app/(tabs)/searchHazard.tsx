@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { StyleSheet, View, SafeAreaView, TextInput, Text, ActivityIndicator, FlatList, TouchableOpacity, Alert, TouchableWithoutFeedback, Keyboard, Pressable } from 'react-native';
 import MapView, { Marker, Region } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,7 +7,7 @@ import { debounce } from 'lodash';
 import { useSession } from '../../SessionContext'; // Access session context
 import { useTheme } from '@/theme/ThemeContext'; // Access theme controls
 import { router } from 'expo-router';
-import { collection, getDoc, getDocs, getFirestore } from 'firebase/firestore';
+import { collection, getDoc, getDocs, getFirestore, Timestamp, query, where } from 'firebase/firestore';
 import { initializeApp } from 'firebase/app';
 import { firebaseConfig } from '@/firebase';
 
@@ -105,37 +106,59 @@ export default function SearchPage() {
   */
 
   // Simulate fetching hazards
-  const fetchHazards = async (): Promise<Hazard[]> => {
-    try {
-      const querySnapshot = await getDocs(collection(db, 'hazards'));
-      const hazardList: Hazard[] = [];
+  const fetchHazards = async (region: Region): Promise<Hazard[]> => {
+      try {
+          const now = new Date();
+          const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000); // 3 days ago in milliseconds
+          const hazardsQuery = query(
+              collection(db, 'hazards'),
+              where('timestamp', '>=', threeDaysAgo), // Filter for hazards within the last 3 days
+              where('downvotes', '<=', 5) // Filter for hazards with 5 or fewer downvotes
+          );
 
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        if (
-          data.latitude !== undefined &&
-          data.longitude !== undefined &&
-          data.type &&
-          data.description
-        ) {
-          hazardList.push({
-            id: doc.id,
-            type: data.type,
-            description: data.description,
-            latitude: data.latitude,
-            longitude: data.longitude,
-            latitudeDelta: 0.01,
-            longitudeDelta: 0.01,
+          const querySnapshot = await getDocs(hazardsQuery);
+          const hazardList: Hazard[] = [];
+
+          // Log the number of documents and the actual data
+          console.log(`Fetched ${querySnapshot.size} hazards from Firestore`);
+
+          // Iterate through each document and log its data
+          querySnapshot.forEach((doc) => {
+              console.log(`Document ID: ${doc.id}`);
+              console.log('Document Data:', doc.data()); // Logs the actual document data
+
+              const data = doc.data();
+              const location = data.location;
+
+              if (
+                  location &&
+                  typeof location.latitude === 'number' &&
+                  typeof location.longitude === 'number' &&
+                  typeof data.hazard === 'string' &&
+                  typeof data.description === 'string'
+              ) {
+                  hazardList.push({
+                      id: doc.id,
+                      type: data.hazard,
+                      description: data.description,
+                      latitude: location.latitude,
+                      longitude: location.longitude,
+                      latitudeDelta: 0.01,
+                      longitudeDelta: 0.01,
+                      upvotes: data.upvotes,
+                      downvotes: data.downvotes
+                  });
+              } else {
+                  console.log(`Invalid data in document ${doc.id}`);
+              }
           });
-        }
-      });
 
-      return hazardList;
-    } catch (error) {
-      console.error('Error fetching hazards from Firestore:', error);
-      Alert.alert('Error', 'Failed to fetch hazards from Firestore.');
-      return [];
-    }
+          return hazardList;
+      } catch (error) {
+          console.error('Error fetching hazards from Firestore:', error);
+          Alert.alert('Error', 'Failed to fetch hazards from Firestore.');
+          return [];
+      }
   };
 
   // Fetch address suggestions from Geoapify API
@@ -245,7 +268,7 @@ export default function SearchPage() {
   const updateHazards = useCallback(async (location: Region) => {
     setLoading(true);
     try {
-      const fetchedHazards = await fetchHazards(location);
+      const fetchedHazards = await fetchHazards(location); // Now passing the region
       setHazards(fetchedHazards);
       console.log('DEBUG: Hazards updated:', fetchedHazards);
     } catch (e) {
@@ -258,20 +281,22 @@ export default function SearchPage() {
   const debouncedUpdateHazards = useCallback(
     debounce((region: Region) => {
       updateHazards(region);
-    }, 1000), // 1000ms debounce time
+    }, 10000), // 10000ms debounce time
     [updateHazards]
   );
 
-  useEffect(() => {
-    const loadHazards = async () => {
-      setLoading(true);
-      const fetchedHazards = await fetchHazards();
-      setHazards(fetchedHazards);
-      setLoading(false);
-    };
+  useFocusEffect(
+    useCallback(() => {
+      const loadHazards = async () => {
+        setLoading(true);
+        const fetchedHazards = await fetchHazards();
+        setHazards(fetchedHazards);
+        setLoading(false);
+      };
 
-    loadHazards();
-  }, []);
+      loadHazards();
+    }, [])
+  );
 
   /*
   ###################################################################
@@ -339,6 +364,7 @@ export default function SearchPage() {
 
           {/* Map */}
           <View style={styles.mapContainer}>
+          console.log("Hazards: ", hazards);
             <MapView
               ref={mapRef}
               style={styles.map}
@@ -347,15 +373,19 @@ export default function SearchPage() {
               region={currentLocation} // Dynamically update the map region
               onRegionChangeComplete={(region) => {
                 setCurrentLocation(region);
-                updateHazards(region); // <-- Fetch hazards when the map stops moving
+                debouncedUpdateHazards(region); // <-- Fetch hazards when the map stops moving
               }}
             >
               {hazards.map((hazard) => (
                 <Marker
-                  key={data.id}
-                  coordinate={{ latitude: data.latitude, longitude: data.longitude }}
-                  title={data.type}
-                  description={data.description}
+                  key={hazard.id}
+                  coordinate={{ latitude: hazard.latitude, longitude: hazard.longitude }}
+                  title={hazard.type}
+                  /*description={hazard.description}*/
+                  onPress={() => {
+                      console.log('Navigating to viewHazard with ID:', hazard.id);
+                      router.push({ pathname: '/viewHazard', params: { hazardId: hazard.id } });
+                  }}
                 />
               ))}
             </MapView>
