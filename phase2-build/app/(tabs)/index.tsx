@@ -8,7 +8,7 @@ import { router, useRouter } from 'expo-router';
 //import { useSession } from '@/theme/ThemeContext'; // Access the session context
 import { useSession } from '../../SessionContext'; // Access the session context
 import DeviceCountry from 'react-native-device-country';
-//import { useTheme } from '@/theme/ThemeContext'; // Access theme controls
+import { useTheme } from '@/theme/ThemeContext'; // Access theme controls
 
 
 /** Additional installs **/
@@ -258,100 +258,6 @@ export default function Index() {
       loadLocation(); // Call loadLocation on mount if no location is in the session
     }
   }, [session.currentLocation, loadLocation]);
-    /* sceptically changing this block... START*/
-    /*
-    let initialLocation: LocationData | null = null;
-
-    try {
-      // Check and request permissions
-      const existingPermissionResponse = await Location.getForegroundPermissionsAsync();
-      if (existingPermissionResponse.status === 'granted') {
-        console.log('DEBUG: Permissions already granted.');
-        updateSession({ locationPermission: existingPermissionResponse }); // Update session with full permission response
-      } else if (existingPermissionResponse.status === 'undetermined') {
-        const permissionResponse = await Location.requestForegroundPermissionsAsync();
-        updateSession({ locationPermission: permissionResponse }); // Update session with full permission response
-        if (permissionResponse.status !== 'granted') {
-          throw new Error('Permissions not granted after request.');
-        }
-      } else {
-        // Permissions denied
-        updateSession({ locationPermission: existingPermissionResponse }); // Update session with denied permission response
-        throw new Error('Permissions denied.');
-      }
-
-      // Include fallback for web browser user
-      if (Platform.OS === 'web') {
-        if ('geolocation' in navigator) {
-          navigator.geolocation.getCurrentPosition(
-            (pos) => {
-              initialLocation = {
-                latitude: pos.coords.latitude,
-                longitude: pos.coords.longitude,
-                latitudeDelta: 0.01,
-                longitudeDelta: 0.01,
-              };
-              setLocation(initialLocation);
-              updateSession({ currentLocation: initialLocation });
-              setLoading(false);
-            },
-            async () => {
-              try {
-                initialLocation = (await getGenericLocationFromIP()) || DEFAULT_REGION;
-                setLocation(initialLocation);
-                updateSession({ currentLocation: initialLocation });
-              } catch (e) {
-                console.warn('Web IP or default lookup failed', e);
-                setErrorMsg('Error getting location');
-              } finally {
-                setLoading(false);
-              }
-            }
-          );
-        } else {
-          initialLocation = DEFAULT_REGION;
-          setLocation(initialLocation);
-          updateSession({ currentLocation: initialLocation });
-          setLoading(false);
-        }
-      } else {
-        // Try to set the precise location for native platforms
-        const nativeLocation = await getCurrentLocation();
-        if (nativeLocation) {
-          initialLocation = nativeLocation;
-        } else {
-          // Set a fallback location if we can't get precise location
-          initialLocation =
-            (await getGenericLocationFromIP()) || (await getGenericLocationByCountry()) || DEFAULT_REGION;
-        }
-        setLocation(initialLocation);
-        updateSession({ currentLocation: initialLocation });
-        setLoading(false);
-      }
-    } catch (error) {
-      if (error instanceof Error) {
-        console.error(error.message || 'Error with location permissions.');
-        setErrorMsg(error.message || 'Failed to get location. Please check permissions.');
-        setLocation(DEFAULT_REGION);
-        updateSession({ currentLocation: DEFAULT_REGION });
-      } else {
-        console.error('Unknown error occurred:', error);
-        setErrorMsg('An unknown error occurred. Please try again.');
-        setLocation(DEFAULT_REGION);
-        updateSession({ currentLocation: DEFAULT_REGION });
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [updateSession]);
-
-  useEffect(() => {
-    if (!session.currentLocation) {
-      loadLocation(); // Call loadLocation on mount if no location is in the session
-    }
-  }, [session.currentLocation, loadLocation]);
-  */
- /* sceptically changing this block... END*/
 
   /*
   ###################################################################
