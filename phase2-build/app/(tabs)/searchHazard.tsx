@@ -1,13 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { useFocusEffect, useIsFocused } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 import { StyleSheet, View, SafeAreaView, TextInput, Text, ActivityIndicator, FlatList, TouchableOpacity, Alert, TouchableWithoutFeedback, Keyboard, Pressable } from 'react-native';
 import MapView, { Marker, Region } from 'react-native-maps';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { debounce } from 'lodash';
 import { useSession } from '../../SessionContext'; // Access session context
 import { useTheme } from '@/theme/ThemeContext'; // Access theme controls
 import { router } from 'expo-router';
-import { collection, getDoc, getDocs, getFirestore, Timestamp, query, where } from 'firebase/firestore';
+import { collection, getDocs, getFirestore, Timestamp, query, where } from 'firebase/firestore';
 import { initializeApp } from 'firebase/app';
 import { firebaseConfig } from '@/firebase';
 
@@ -50,6 +50,8 @@ type Hazard = {
   longitude: number;
   latitudeDelta: number;
   longitudeDelta: number;
+  upvotes?: number;
+  downvote?: number;
 };
 
 // Simulated debug hazards
@@ -298,12 +300,29 @@ export default function SearchPage() {
     }, [])
   );
 
+  const getHazardIcon = (type: string) => {
+      const iconProps = { size: 30};
+
+      switch (type.toLowerCase()){
+        case 'fallen tree':
+            return <MaterialCommunityIcons name="tree" {...iconProps}/>;
+        case 'flood':
+            return <MaterialCommunityIcons name="water" {...iconProps}/>;
+        case 'fallen powerline':
+            return <MaterialCommunityIcons name="electric-bolt" {...iconProps}/>;
+        case 'fire':
+            return <MaterialCommunityIcons name="fire" {...iconProps}/>;
+        default:
+            return <MaterialCommunityIcons name="map-marker" {...iconProps}/>;
+    }
+  };
+
   /*
   ###################################################################
   ## -- COMPONENT RENDERING --                                    ##
   ###################################################################
   */
-
+  //console.log("Hazards: ", hazards);
   return (
     <View style={styles.pageContainer}>
           {/*Settings Button*/}
@@ -364,7 +383,6 @@ export default function SearchPage() {
 
           {/* Map */}
           <View style={styles.mapContainer}>
-          console.log("Hazards: ", hazards);
             <MapView
               ref={mapRef}
               style={styles.map}
@@ -381,12 +399,14 @@ export default function SearchPage() {
                   key={hazard.id}
                   coordinate={{ latitude: hazard.latitude, longitude: hazard.longitude }}
                   title={hazard.type}
-                  /*description={hazard.description}*/
+                  //description={hazard.description}
                   onPress={() => {
                       console.log('Navigating to viewHazard with ID:', hazard.id);
                       router.push({ pathname: '/viewHazard', params: { hazardId: hazard.id } });
                   }}
-                />
+                >
+                {getHazardIcon(hazard.type)}
+              </Marker>
               ))}
             </MapView>
           </View>
@@ -410,7 +430,6 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     padding: 10,
     borderRadius: 8,
-    marginTop: '2%',
     backgroundColor: 'white',
     shadowColor: '#000',
     shadowOpacity: 0.2,
@@ -442,9 +461,9 @@ const styles = StyleSheet.create({
     left: '50%',
   },
   titleContainer: {
-    padding: 5,
+    padding: 10,
     alignItems: 'center',
-    marginTop: 5,
+    marginTop: 20,
   },
   title: {
     fontSize: 24,
@@ -454,12 +473,12 @@ const styles = StyleSheet.create({
   },
   pageContainer: {
     flex: 1,
+    backgroundColor: 'white',
   },
   settingsButton: {
     position: 'absolute',
-    top: 10,
+    top: 25,
     left: 20,
-    backgroundColor: '#eee',
     borderRadius: 10,
     padding: 10,
     zIndex: 1,

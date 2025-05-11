@@ -367,15 +367,14 @@ const styles = StyleSheet.create({
   },
   settingsButton: {
     position: 'absolute',
-    top: 50,
+    top: 25,
     left: 20,
-    backgroundColor: '#eee',
     borderRadius: 10,
     padding: 10,
     zIndex: 1,
   },
   titleContainer: {
-    marginTop: 47,
+    marginTop: 20,
     padding: 10,
     alignItems: 'center',
   },

@@ -174,7 +174,7 @@ export default function ReportHazardScreen() {
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}> 
         <View style={styles.titleContainer}>
           <Text style={styles.title}>Disaster Map</Text>
-          <Text style={styles.text}>Report a Hazard Page</Text>
+          <Text style={styles.text}>Report a Hazard</Text>
           
           {/* Enter Address Input field */}
           {/* This input field is for entering the address of the hazard location */}
@@ -204,7 +204,7 @@ export default function ReportHazardScreen() {
                   <Text style={{ padding: 10 }}>{item.properties.formatted}</Text>
                 </Pressable>
               )}
-              style={{ width: '80%', maxHeight: 200 }} // Style for the FlatList
+              style={{ width: '90%', maxHeight: 200 }} // Style for the FlatList
             />
           )}
 
@@ -218,7 +218,7 @@ export default function ReportHazardScreen() {
               </Text>
               <Ionicons
                 // Icon for dropdown arrow
-                name={isDropdownOpen ? 'chevron-up' : 'chevron-down'} 
+                name={isDropdownOpen ? 'chevron-up' : 'chevron-down'}
                 size={20}
                 color="black"
                 style={styles.dropdownArrow}
@@ -266,7 +266,6 @@ export default function ReportHazardScreen() {
               onChangeText={handleDescriptionChange} // Handle text input changes
               multiline // Allow multiline input
               maxLength={256} // Limit to 256 characters
-              textAlignVertical="top" // Align text to the top of the input field
             />
             <Text style={styles.wordCount}>
               {/* Display word count and maximum word count */}
@@ -355,7 +354,7 @@ export default function ReportHazardScreen() {
               setAddress(''); // Clear address
               setImages([]); // Clear images
             }}>
-            <Text style={styles.imageButtonText}>Submit Hazard</Text>
+            <Text style={styles.submitButtonText}>Submit Hazard</Text>
           </Pressable>
         </View>
       </TouchableWithoutFeedback>
@@ -366,19 +365,20 @@ export default function ReportHazardScreen() {
 const styles = StyleSheet.create({
   pageContainer: {
     flex: 1,
+    backgroundColor: 'white',
   },
   titleContainer: {
     padding: 10,
     alignItems: 'center',
-    marginTop: 47,
+    marginTop: 20,
     flex: 1,
     position: 'relative',
   },
   settingsButton: {
     position: 'absolute',
-    top: 50,
+    top: 25,
     left: 20,
-    backgroundColor: '#eee',
+    backgroundColor: 'white',
     borderRadius: 10,
     padding: 10,
     zIndex: 1,
@@ -395,42 +395,44 @@ const styles = StyleSheet.create({
     fontFamily: 'Roboto',
   },
   textImage:{
-    fontSize: 16,
-    marginTop: 20,
+    marginTop: 10,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#555',
+    marginBottom: 10,
   },
   clearText: {
     marginTop: 8,
-    fontSize: 16,
-    color: 'blue',
+    fontSize: 14,
+    color: '#d3d3d3',
   },
   dropdownContainer: {
-    width: '80%',
+    width: '90%',
     marginTop: '5%',
     borderWidth: 1,
     borderColor: '#ccc',
-    borderRadius: 5,
+    borderRadius: 8,
+    backgroundColor: '#f9f9f9',
   },
   dropdown: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     padding: 10,
+    borderColor: '#ccc',
+    backgroundColor: '#f9f9f9',
+    borderRadius: 8,
   },
   dropdownText: {
-    fontSize: 16,
-    color: 'black',
     fontFamily: 'Roboto',
   },
   dropdownArrow: {
     marginLeft: 10,
   },
   dropdownMenu: {
-    borderTopWidth: 1,
+    borderRadius: 8,
     borderColor: '#ccc',
-    backgroundColor: '#f9f9f9',
   },
   dropdownMenuText: {
-    fontSize: 16,
-    color: 'black',
     fontFamily: 'Roboto',
   },
   selectedText: {
@@ -440,19 +442,19 @@ const styles = StyleSheet.create({
     fontFamily: 'Roboto',
   },
   descriptionContainer: {
-    width: '80%',
+    width: '90%',
     marginTop: 20,
   },
   descriptionInput: {
     height: 150,
+    textAlignVertical: 'top',
     borderWidth: 1,
     borderColor: '#ccc',
-    borderRadius: 5,
+    borderRadius: 8,
     padding: 10,
-    backgroundColor: '#fff',
+    backgroundColor: '#f9f9f9',
     fontSize: 16,
     color: 'black',
-    fontFamily: 'Roboto',
   },
   wordCount: {
     marginTop: 5,
@@ -463,29 +465,31 @@ const styles = StyleSheet.create({
   },
   imageButtonsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '80%',
-    marginTop: 20,
+    alignItems: 'center',
+    marginTop: 10,
+    marginBottom: 30,
   },
   imageButton: {
-    backgroundColor: '#007AFF',
     paddingVertical: 10,
-    paddingHorizontal: 20,
+    paddingHorizontal: 30,
     borderRadius: 5,
+    marginHorizontal: 5,
+    borderColor: "#888",
+    backgroundColor: "#fff",
+    borderWidth: 1,
   },
   submitButton:{
-    backgroundColor: '#28A745',
+    backgroundColor: '#3385FF',
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 5,
     marginTop: 20,
-    width: '60%',
     alignItems: 'center',
     zIndex: 10,
     position: 'relative',
   },
   imageButtonText: {
-    color: 'white',
+    color: '#6a5acd',
     fontSize: 16,
     fontWeight: 'bold',
     fontFamily: 'Roboto',
@@ -513,19 +517,21 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   addressInput: {
-    height: 40,
-    width: '75%',
-    borderColor: '#000',
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    borderRadius: 5,
-    fontFamily: 'Roboto',
-    textAlignVertical: 'center',
+    textAlignVertical: 'left',
+    color: 'black',
+  },
+  robotoFont: {
+      fontFamily: 'Roboto',
   },
   addressContainer: {
-    marginTop: '5%',
-    alignItems: 'center',
-    width: '100%',    
+    width: '90%',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    padding: 5,
+    marginTop: 15,
+    marginBottom: 5,
+    backgroundColor: '#f9f9f9',
   },
   suggestionList: {
     backgroundColor: '#fff',
@@ -546,4 +552,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'black',
   },
+  submitButtonText: {
+  color: '#fff',
+  fontSize: 16,
+  fontWeight: '600',
+  fontFamily: 'Roboto',
+}
 });

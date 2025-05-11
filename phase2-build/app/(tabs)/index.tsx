@@ -336,12 +336,12 @@ export default function Index() {
 
 // New Code Debugging <<<< INSERT START HERE
 const styles = StyleSheet.create({
-  wrapper: { flex: 1 },
-  titleContainer: { alignItems: 'center', marginTop: '13%', padding: 5},
+  wrapper: { flex: 1, backgroundColor: 'white' },
+  titleContainer: { alignItems: 'center', marginTop: 20, padding: 10},
   title: { fontSize: 24, fontWeight: 'bold', color: 'black' },
   mapContainer: { flex: 1 },
   map: { width: '100%', height: '100%', padding: 5 },
-  settingsButton: { position: 'absolute', top: 50, left: 20, padding: 10, zIndex: 1 },
+  settingsButton: { position: 'absolute', top: 25, left: 20, padding: 10, zIndex: 1 },
   refreshButton: { position: 'absolute', bottom: '12%', right: '5%', padding: 5, zIndex: 1},
   permissionsContainer: { alignItems: 'center', marginTop: 20 },
 });
