@@ -39,6 +39,7 @@ type UserSettings = {
 export default function Settings() {
   const { theme, setTheme } = useTheme(); // addedV2
   const [isAboutVisible, setIsAboutVisible] = useState(false); // existing
+  const [isTermVisible, setIsTermVisible] = useState(false); // existing
   const [isDark, setIsDark] = useState(theme === 'dark'); // Stores local dark mode state
 
   // Attempt to load settings from cache on mount
@@ -76,6 +77,7 @@ export default function Settings() {
 
   // About section toggle
   const toggleAbout = () => { setIsAboutVisible(!isAboutVisible); }; // existing
+  const toggleTerms = () => { setIsTermVisible(!isTermVisible); }; // existing
 
   // Dark mode toggle function
   const handleToggleDarkMode = (value: boolean) => {
@@ -101,16 +103,19 @@ export default function Settings() {
           },
         }}
       />
-      <ScrollView contentContainerStyle={styles.pageContainer}>
+      <ScrollView contentContainerStyle={[
+        styles.pageContainer,
+        { backgroundColor: theme === 'dark' ? '#121212' : '#FFFFFF' },
+      ]}>
         <View style={styles.titleContainer}>
-          <Text style={[styles.text, styles.robotoFont]}>Settings</Text>
+          <Text style={[styles.text, styles.robotoFont, { color: theme === 'dark' ? '#fff' : '#333' }]}>Settings</Text>
         </View>
         
         {/* Dark Mode Control Slider */}
         <View className="flex items-centre justify-center my-4">
           <Text
             className="text-lg mb-4 text-black dark:text-white"
-            style={styles.robotoFont}
+            style={[styles.robotoFont, { color: theme === 'dark' ? '#fff' : '#333' }]}
           >
             Dark Mode: {isDark ? "On" : "Off"}
           </Text>
@@ -129,14 +134,33 @@ export default function Settings() {
 
         {/* About Content Section */}
         {isAboutVisible && (
-          <View style={styles.aboutContent}>
-            <Text style={[styles.aboutText, styles.robotoFont]}>
+          <View style={[
+              styles.aboutContent,
+              {backgroundColor: theme === 'dark' ? '#1E1E1E' : '#FFFFFF',
+              borderColor: theme === 'dark' ? '#333' : '#ddd',
+              }
+          ]}>
+            <Text style={[styles.aboutText, styles.robotoFont, { color: theme === 'dark' ? '#fff' : '#333' }]}>
               Disaster Map is a mobile application designed to provide real-time disaster information and assistance. Developed by the Group 2 team (Luke and Richard).
             </Text>
             <Text style={[styles.aboutText, styles.robotoFont]}>
               Affiliated Government Agencies: Anyone who wants to help with disaster management and response.
             </Text>
           </View>
+        )}
+
+        <TouchableOpacity style={styles.aboutButton} onPress={toggleTerms}>
+            <Text style={styles.aboutButtonText}>Terms / Agreements</Text>
+        </TouchableOpacity>
+        {isTermVisible && (
+            <View style={styles.aboutContent}>
+                <Text style={[styles.aboutText, styles.robotoFont]}>
+                    This section would outline the terms set out by the developers in a production environment.
+                </Text>
+                <Text style={[styles.aboutText, styles.robotoFont]}>
+                    This section would outline the agreements set out by the developers in a production environment.
+                </Text>
+            </View>
         )}
         {/*
         <View className="flex-1 items-center justify-center bg-white dark:bg-black">
@@ -158,24 +182,19 @@ export default function Settings() {
 
 const styles = StyleSheet.create({
   pageContainer: {
-    //flex: 1,
     flexGrow: 1,
     alignItems: 'center',
     paddingVertical: 20,
-    backgroundColor: 'white', // Can implement nativewind classes for darkmode if required
+    backgroundColor: 'white', // Can implement native wind classes for dark mode if required
   },
   titleContainer: {
-    //padding: 10,
     marginBottom: 20,
     alignItems: 'center',
   },
   text: {
     fontSize: 20,
-    //marginTop: 35,
-    //fontFamily: 'Roboto',
   },
   aboutButton: {
-    //marginTop: '100%',
     marginTop: 20,
     paddingVertical: 10,
     paddingHorizontal: 20,
@@ -193,7 +212,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
-    //fontFamily: 'Roboto',
   },
   aboutContent: {
     marginTop: 10,
@@ -209,7 +227,6 @@ const styles = StyleSheet.create({
     color: '#333',
     textAlign: 'center',
     marginBottom: 5,
-    //fontFamily: 'Roboto',
   },
   robotoFont: {
     fontFamily: 'RobotoRegular', // Single line for font application

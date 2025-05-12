@@ -27,12 +27,15 @@ export default function ReportHazardScreen() {
   const GEOAPIFY_API_KEY = '9bf2f555990c4aa384b93daa6dd23757'; // API key for geocoding service
   const descriptionRef = useRef(null); // Reference to the description input field
   const [selectedHazard, setSelectedHazard] = useState(''); // State to track the selected hazard
+  const [selectedHazardRating, setSelectedHazardRating] = useState(''); //State to track hazard rating
   const [isDropdownOpen, setIsDropdownOpen] = useState(false); // Tracks dropdown state
+  const [isDropdownOpen2, setIsDropdownOpen2] = useState(false); // Tracks dropdown state
   const [description, setDescription] = useState(''); // Tracks the description state
   const [address, setAddress] = useState(''); // Tracks the address state
   const addressRef = useRef(null); // Reference to the address input field
   const [images, setImages] = useState<string[]>([]); // State to track the selected images (URIs)
   const hazardOptions = ['Flood', 'Fallen Tree', 'Fallen Powerline', 'Fire']; // Hazard options for the dropdown list
+  const hazardSeverity = ['Minor','Low','Medium','High'];
   const MAX_WORD_COUNT = 256; // Maximum word count for the description
   const MAX_IMAGES = 3; // Maximum number of images allowed
   const [suggestions, setSuggestions] = useState([]); // State to store address suggestions
@@ -42,6 +45,11 @@ export default function ReportHazardScreen() {
   function clearSelection(event: GestureResponderEvent): void {
     setSelectedHazard(''); // Clear the selected hazard state
   }
+
+  function clearRatingSelection(event: GestureResponderEvent): void {
+      setSelectedHazardRating(''); // Clear the selected hazard state
+    }
+
   // Function to count the number of words in a given text
   // This function splits the text by whitespace and returns the length of the resulting array
   const countWords = (text: string) => {
@@ -174,7 +182,7 @@ export default function ReportHazardScreen() {
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}> 
         <View style={styles.titleContainer}>
           <Text style={styles.title}>Disaster Map</Text>
-          <Text style={styles.text}>Report a Hazard Page</Text>
+          <Text style={styles.text}>Report a Hazard</Text>
           
           {/* Enter Address Input field */}
           {/* This input field is for entering the address of the hazard location */}
@@ -204,7 +212,7 @@ export default function ReportHazardScreen() {
                   <Text style={{ padding: 10 }}>{item.properties.formatted}</Text>
                 </Pressable>
               )}
-              style={{ width: '80%', maxHeight: 200 }} // Style for the FlatList
+              style={{ width: '90%', maxHeight: 200 }} // Style for the FlatList
             />
           )}
 
@@ -218,7 +226,7 @@ export default function ReportHazardScreen() {
               </Text>
               <Ionicons
                 // Icon for dropdown arrow
-                name={isDropdownOpen ? 'chevron-up' : 'chevron-down'} 
+                name={isDropdownOpen ? 'chevron-up' : 'chevron-down'}
                 size={20}
                 color="black"
                 style={styles.dropdownArrow}
@@ -242,19 +250,53 @@ export default function ReportHazardScreen() {
               </View>
             )}
           </View>
-            
-            {/* Clear Selection Button */}
-            {/* This button clears the selected hazard when pressed */}
+
+          {/* Clear Selection Button */}
+          {/* This button clears the selected hazard when pressed */}
           <Pressable style={styles.clearText} onPress={clearSelection}>
             <Text>Clear Selection</Text>
           </Pressable>
-          {/* Display selected hazard text */}
-          {/* This text shows the currently selected hazard, if any */}
-          {selectedHazard ? (
-            <Text style={styles.selectedText}>
-              Selected: {selectedHazard}
-            </Text>
-          ) : null}
+
+          {/*Trying new dropdown list */}
+          <View style={styles.dropdownContainer}>
+            <Pressable
+                onPress={() => setIsDropdownOpen2(!isDropdownOpen2)}
+                style={styles.dropdown}>
+                <Text style={styles.dropdownText}>
+                  {selectedHazardRating || 'Hazard Rating'}
+                </Text>
+                <Ionicons
+                  // Icon for dropdown arrow
+                  name={isDropdownOpen2 ? 'chevron-up' : 'chevron-down'}
+                  size={20}
+                  color="black"
+                  style={styles.dropdownArrow}
+                />
+              </Pressable>
+              {/* Dropdown Menu */}
+              {isDropdownOpen2 && (
+                <View style={styles.dropdownMenu}>
+                  {/* Map through hazard options and create Pressable items */}
+                  {hazardSeverity.map((hazardRating, index) => (
+                    <Pressable
+                      key={index}
+                      style={{ padding: 10 }}
+                      onPress={() => {
+                        setSelectedHazardRating(hazardRating); // Set selected hazard
+                        setIsDropdownOpen2(false); // Close dropdown
+                      }}>
+                      <Text style={styles.dropdownMenuText}>{hazardRating}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+          </View>
+
+            {/* Clear Selection Button */}
+            {/* This button clears the selected hazard when pressed */}
+          <Pressable style={styles.clearText} onPress={clearRatingSelection}>
+            <Text>Clear Selection</Text>
+          </Pressable>
 
           {/*Description Input field*/}
           <View style={styles.descriptionContainer}>
@@ -266,7 +308,6 @@ export default function ReportHazardScreen() {
               onChangeText={handleDescriptionChange} // Handle text input changes
               multiline // Allow multiline input
               maxLength={256} // Limit to 256 characters
-              textAlignVertical="top" // Align text to the top of the input field
             />
             <Text style={styles.wordCount}>
               {/* Display word count and maximum word count */}
@@ -318,12 +359,12 @@ export default function ReportHazardScreen() {
             onPress={async () => {
               // Firestore instance is already initialized at a higher scope
               // Check if a hazard is selected and description is provided
-              alert('Hazard is being processed');
-              if (!selectedHazard || !description || !address) {
+              if (!selectedHazard || !selectedHazardRating || !description || !address) {
                 // Alert if no hazard or description is provided
-                alert('Please select a hazard and provide a description.');
+                alert('Please fill out all fields.');
                 return;
               }
+              alert('Hazard is being processed');
               const coords = await geocodeAddress(address); // Geocode the address to get coordinates
               if (!coords) {
                 alert('Invalid address. Please try again.'); // Alert if address is invalid
@@ -334,6 +375,7 @@ export default function ReportHazardScreen() {
                   // Add a new document to the "hazards" collection in Firestore
                   await addDoc(collection(db, 'hazards'), {
                     hazard: selectedHazard,
+                    rating: selectedHazardRating,
                     description: description,
                     images: images,
                     location: {
@@ -342,20 +384,21 @@ export default function ReportHazardScreen() {
                     },
                     upvotes: 0,
                     downvotes: 0,
-                    timestamp: new Date(), // Add a timestamp
+                    timestamp: new Date(),
                   });
                   alert('Hazard reported successfully!'); // Alert on success
                 } catch (error) {
-                  console.error('Error adding document: ', error); // Log error
+                  console.error('Error adding document: ', error);
                   alert('Error reporting hazard. Please try again.'); // Alert on error
                 }
               // Reset state after submission
-              setSelectedHazard(''); // Clear selected hazard
-              setDescription(''); // Clear description
-              setAddress(''); // Clear address
-              setImages([]); // Clear images
+              setSelectedHazard('');
+              setSelectedHazardRating('');
+              setDescription('');
+              setAddress('');
+              setImages([]);
             }}>
-            <Text style={styles.imageButtonText}>Submit Hazard</Text>
+            <Text style={styles.submitButtonText}>Submit Hazard</Text>
           </Pressable>
         </View>
       </TouchableWithoutFeedback>
@@ -366,19 +409,20 @@ export default function ReportHazardScreen() {
 const styles = StyleSheet.create({
   pageContainer: {
     flex: 1,
+    backgroundColor: 'white',
   },
   titleContainer: {
     padding: 10,
     alignItems: 'center',
-    marginTop: 47,
+    marginTop: 20,
     flex: 1,
     position: 'relative',
   },
   settingsButton: {
     position: 'absolute',
-    top: 50,
+    top: 25,
     left: 20,
-    backgroundColor: '#eee',
+    backgroundColor: 'white',
     borderRadius: 10,
     padding: 10,
     zIndex: 1,
@@ -387,108 +431,101 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: 'black',
-    fontFamily: 'Roboto',
   },
   text: {
     fontSize: 20,
     marginTop: 35,
-    fontFamily: 'Roboto',
   },
   textImage:{
-    fontSize: 16,
-    marginTop: 20,
+    marginTop: 10,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#555',
+    marginBottom: 10,
   },
   clearText: {
     marginTop: 8,
-    fontSize: 16,
-    color: 'blue',
+    fontSize: 14,
+    color: '#d3d3d3',
   },
   dropdownContainer: {
-    width: '80%',
-    marginTop: '5%',
+    width: '90%',
+    marginTop: 20,
     borderWidth: 1,
     borderColor: '#ccc',
-    borderRadius: 5,
+    borderRadius: 8,
+    backgroundColor: '#f9f9f9',
   },
   dropdown: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     padding: 10,
-  },
-  dropdownText: {
-    fontSize: 16,
-    color: 'black',
-    fontFamily: 'Roboto',
+    borderColor: '#ccc',
+    backgroundColor: '#f9f9f9',
+    borderRadius: 8,
   },
   dropdownArrow: {
     marginLeft: 10,
   },
   dropdownMenu: {
-    borderTopWidth: 1,
+    borderRadius: 8,
     borderColor: '#ccc',
-    backgroundColor: '#f9f9f9',
-  },
-  dropdownMenuText: {
-    fontSize: 16,
-    color: 'black',
-    fontFamily: 'Roboto',
   },
   selectedText: {
     marginTop: 10,
     fontSize: 16,
     color: 'black',
-    fontFamily: 'Roboto',
   },
   descriptionContainer: {
-    width: '80%',
+    width: '90%',
     marginTop: 20,
   },
   descriptionInput: {
     height: 150,
+    textAlignVertical: 'top',
     borderWidth: 1,
     borderColor: '#ccc',
-    borderRadius: 5,
+    borderRadius: 8,
     padding: 10,
-    backgroundColor: '#fff',
+    backgroundColor: '#f9f9f9',
     fontSize: 16,
     color: 'black',
-    fontFamily: 'Roboto',
   },
   wordCount: {
     marginTop: 5,
     fontSize: 14,
     color: '#666',
     textAlign: 'right',
-    fontFamily: 'Roboto',
   },
   imageButtonsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '80%',
-    marginTop: 20,
+    alignItems: 'center',
+    marginTop: 10,
+    marginBottom: 30,
   },
   imageButton: {
-    backgroundColor: '#007AFF',
     paddingVertical: 10,
-    paddingHorizontal: 20,
+    paddingHorizontal: 30,
     borderRadius: 5,
+    marginHorizontal: 5,
+    borderColor: "#888",
+    backgroundColor: "#fff",
+    borderWidth: 1,
   },
   submitButton:{
-    backgroundColor: '#28A745',
+    backgroundColor: '#3385FF',
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 5,
     marginTop: 20,
-    width: '60%',
     alignItems: 'center',
     zIndex: 10,
     position: 'relative',
   },
   imageButtonText: {
-    color: 'white',
+    color: '#6a5acd',
     fontSize: 16,
     fontWeight: 'bold',
-    fontFamily: 'Roboto',
   },
   flatListContainer: {
     marginTop: 20,
@@ -513,19 +550,18 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   addressInput: {
-    height: 40,
-    width: '75%',
-    borderColor: '#000',
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    borderRadius: 5,
-    fontFamily: 'Roboto',
-    textAlignVertical: 'center',
+    textAlignVertical: 'left',
+    color: 'black',
   },
   addressContainer: {
-    marginTop: '5%',
-    alignItems: 'center',
-    width: '100%',    
+    width: '90%',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    padding: 5,
+    marginTop: 15,
+    marginBottom: 5,
+    backgroundColor: '#f9f9f9',
   },
   suggestionList: {
     backgroundColor: '#fff',
@@ -545,5 +581,13 @@ const styles = StyleSheet.create({
   suggestionText: {
     fontSize: 14,
     color: 'black',
+  },
+  submitButtonText: {
+  color: '#fff',
+  fontSize: 16,
+  fontWeight: '600',
+  },
+  robotoFont: {
+      fontFamily: 'RobotoRegular', // Single line for font application
   },
 });

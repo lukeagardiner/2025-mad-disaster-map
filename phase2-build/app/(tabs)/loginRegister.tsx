@@ -13,9 +13,9 @@ import { app } from '../../firebase.js'; // Import Firebase app
 // https://firebase.google.com/docs/web/setup#available-libraries
 
 // Need to install npm install firebase
-// PASSWORD is erroring out - 
+// PASSWORD is erroring out -
 // FORGOT PASSWORD screen link
-// Add a transaction table and I'll add a globalint table to the db
+// Add a transaction table and I'll add a globalist table to the db
 // Needs session logic - secure token - auth token that we generate and clear at logout...
 // firebase needs this or at least we need to build future capacity for this behaviour
 // Needs better onscreen feedback or a loading behaviour after button press to stop multiple press
@@ -86,7 +86,7 @@ export default function LoginScreen() {
         .then((userCredential) => { // Sign in successful
           const user = userCredential.user; // Get user information
           console.log('User logged in:', user); // Debug: Log user information
-          // push this to session to ypdate object
+          // push this to session to update object
           updateSession ({
             type: 'authenticated',
             sessionStartTime: new Date().toISOString(),
@@ -115,7 +115,7 @@ export default function LoginScreen() {
         // Attempts to create user with firebase auth
         const userCredential = await createUserWithEmailAndPassword(auth, email, pword)
         const user = userCredential.user
-        console.log('User creation susccessful: ', user);
+        console.log('User creation successful: ', user);
 
         // Need to also set this in the session
         updateSession({
@@ -367,15 +367,14 @@ const styles = StyleSheet.create({
   },
   settingsButton: {
     position: 'absolute',
-    top: 50,
+    top: 25,
     left: 20,
-    backgroundColor: '#eee',
     borderRadius: 10,
     padding: 10,
     zIndex: 1,
   },
   titleContainer: {
-    marginTop: 47,
+    marginTop: 20,
     padding: 10,
     alignItems: 'center',
   },
@@ -383,14 +382,12 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: 'Black',
-    fontFamily: 'Roboto',
   },
   text: {
     fontSize: 20,
     minHeight: 40,
     paddingVertical: 10,
     marginTop: 45,
-    fontFamily: 'Roboto',
   },
   emailContainer: {
     marginTop: 20,
@@ -404,7 +401,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     marginLeft: '5%',
     borderRadius: 5,
-    fontFamily: 'Roboto',
     marginTop: 2
   },
   errorText: {
@@ -412,7 +408,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 10,
     marginLeft: 20,
-    fontFamily: 'Roboto',
   },
   loginButtons: {
     marginTop: 20,
@@ -439,14 +434,12 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
-    fontFamily: 'Roboto',
   },
   linkText: {
     marginTop: 10,
     textAlign: 'center',
     fontSize: 14,
     textDecorationLine: 'underline', // Optional: Adds an underline to make it look like a link
-    fontFamily: 'Roboto', // Optional: Keep consistent with other styles
   },
   popupOverlay: {
     position: 'absolute',
@@ -491,5 +484,8 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  robotoFont: {
+      fontFamily: 'RobotoRegular', // Single line for font application
   },
 });
