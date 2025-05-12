@@ -8,8 +8,9 @@ import { useSession } from '../../SessionContext';
 import { initializeApp, FirebaseError } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword, signOut, initializeAuth } from "firebase/auth";
-import { app } from '../../firebase.js'; // Import Firebase app
-// TODO: Add SDKs for Firebase products that you want to use
+import { app } from '../../firebase.js';
+import '../../firebase.js'; // Import Firebase configuration
+import { set } from 'lodash';
 // https://firebase.google.com/docs/web/setup#available-libraries
 
 // Need to install npm install firebase
@@ -21,11 +22,7 @@ import { app } from '../../firebase.js'; // Import Firebase app
 // Needs better onscreen feedback or a loading behaviour after button press to stop multiple press
 // Better feedback is already registered or registration successful
 
-import '../../firebase.js'; // Import Firebase configuration
-import { set } from 'lodash';
-
 const {firebaseConfig} = require('../../firebase.js'); // Import Firebase configuration
-
 const INITIAL_EMAIL = ''; // Initial email state
 const INITIAL_ERROR = ''; // Initial error state
 
@@ -44,12 +41,10 @@ export default function LoginScreen() {
   const app = initializeApp(firebaseConfig);
   //const analytics = getAnalytics(app);
   const auth = getAuth(app); // Initialize Firebase Authentication
-
   const [loginout, setLoginout] = useState(false); // State to track login/logout status
   const [signup, setSignup] = useState(false); // State to track sign-up status
   const [pword, setPword] = useState(''); // State to track password input
-
-  const [email, setEmail] = useState(INITIAL_EMAIL);
+  const [email, setEmail] = useState(INITIAL_EMAIL); //State to track email input
   const [error, setError] = useState(INITIAL_ERROR);
   const MAX_LENGTH = 50;
 
@@ -78,29 +73,28 @@ export default function LoginScreen() {
   const handleLogin = () => {
     if (error === '' && email !== '') {
       console.log('Email submitted for login:', email);
-      // TODO: Add Firebase login logic here
-      setEmail(email); // Set email state for login
-      setPword(pword); // Set password state for login
-      setLoginout(true); // Set login/logout state to true
+      setEmail(email);
+      setPword(pword);
+      setLoginout(true);
       signInWithEmailAndPassword(auth, email, pword)
-        .then((userCredential) => { // Sign in successful
+        .then((userCredential) => {
           const user = userCredential.user; // Get user information
-          console.log('User logged in:', user); // Debug: Log user information
-          // push this to session to update object
+          console.log('User logged in:', user);
+          // push this session to update object
           updateSession ({
             type: 'authenticated',
             sessionStartTime: new Date().toISOString(),
             expiry: new Date(Date.now() + 3600 * 1000).toISOString(), // 1 hour expiry
           });
           setLoginout(true);
-          <Text>Login successful</Text>; // Display success message
+          <Text>Login successful</Text>;
           router.push('/(tabs)'); // Navigate to the main tabs page after successful login
         })
-        .catch((error) => { // Handle sign-in errors
-          const errorCode = error.code; // Get error code
-          const errorMessage = error.message; // Get error message
-          console.log('Error signing in:', errorCode + " " + errorMessage); // Debug: Log error information
-          setError(errorMessage); // Set error state to display message
+        .catch((error) => {
+          const errorCode = error.code;
+          const errorMessage = error.message;
+          console.log('Error signing in:', errorCode + " " + errorMessage);
+          setError(errorMessage);
         });
     } else {
       console.log('Invalid email or error present');
@@ -139,8 +133,7 @@ export default function LoginScreen() {
         setError(errorMessage); // Set error state to display message
         }
         else {
-          // Catch all
-          console.log('Unexpected error:', error); // Log unexpected errors
+          console.log('Unexpected error:', error);
           setError('An unexpected error occurred. Please try again.'); // Fallback error message
         }
       }       
@@ -149,9 +142,7 @@ export default function LoginScreen() {
     }
   };
 
-  /// Function to handle logout button press
-  // New Async logout
-  // Handle logout
+  // Function to handle logout button on press
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -159,7 +150,7 @@ export default function LoginScreen() {
       setEmail(INITIAL_EMAIL);
       setPword('');
       setError(INITIAL_ERROR);
-      setLoginout(false); // Reset login/logout state
+      setLoginout(false);
       router.push('/'); // Navigate to login page
     } catch (error) {
       console.error('Error signing out:', error);
@@ -185,8 +176,8 @@ export default function LoginScreen() {
       {/*Settings Button*/}
       <Pressable
         onPress={() => {
-          console.log('Navigating to settings'); // Debug: Log navigation
-          router.push('/settings'); // Navigate to settings page
+          console.log('Navigating to settings');
+          router.push('/settings');
         }}
         style={styles.settingsButton}>
         <Ionicons name="settings" size={24} color={theme === 'dark' ? '#fff' : '#000000'} />
@@ -199,17 +190,16 @@ export default function LoginScreen() {
             <Text style={styles.popupText}>Registration successful! User logged in.</Text>
             <TouchableOpacity
               style={styles.buttonPopupClose}
-              onPress={handleDismissSignupPopup} // Hide the popup when dismissed} // Hide the popup when dismissed
+              onPress={handleDismissSignupPopup} // Hide the popup when dismissed
             >
               <Text style={styles.popupCloseText}>Dismiss</Text>
             </TouchableOpacity>
           </View>
         </View>
       )}
-
+      //KeyboardAvoidingView to adjust view when keyboard is open
       <KeyboardAvoidingView 
         style={{ flex: 1 }}
-        //KeyboardAvoidingView to adjust view when keyboard is open
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}> 
         {/*TouchableWithoutFeedback to dismiss keyboard when tapping outside of TextInput*/}
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}> 
@@ -242,6 +232,7 @@ export default function LoginScreen() {
                   />
                 </>
               )}
+              {/*Login Button */}
               <View style={styles.loginButtons}>
                 {/* LOGIN */}
                 {session.type === 'unauthenticated' && (
@@ -417,17 +408,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   logoutButtonContainer: {
-    marginTop: 20, // Adds spacing above the logout button
-    alignItems: 'center', // Centers the button horizontally
-    width: '100%', // Ensures it takes the full width of the container
+    marginTop: 20,
+    alignItems: 'center',
+    width: '100%',
   },
   button: {
-    flex: 1, // Allows the login/signup buttons to expand
+    flex: 1,
     ...buttonBase,
   },
   buttonLogout: {
-    width: '60%', // Sets a fixed width for the logout button
-    alignSelf: 'center', // Centers the button horizontally
+    width: '60%',
+    alignSelf: 'center',
     ...buttonBase,
   },
   buttonText: {
@@ -439,7 +430,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     textAlign: 'center',
     fontSize: 14,
-    textDecorationLine: 'underline', // Optional: Adds an underline to make it look like a link
+    textDecorationLine: 'underline',
   },
   popupOverlay: {
     position: 'absolute',
@@ -447,10 +438,10 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Dim background
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 10, // Ensure popup is above all other elements
+    zIndex: 10,
   },
   popupContainer: {
     position: 'absolute',
@@ -486,6 +477,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   robotoFont: {
-      fontFamily: 'RobotoRegular', // Single line for font application
+      fontFamily: 'RobotoRegular',
   },
 });

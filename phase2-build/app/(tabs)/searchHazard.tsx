@@ -52,7 +52,7 @@ type Hazard = {
   latitudeDelta: number;
   longitudeDelta: number;
   upvotes?: number;
-  downvote?: number;
+  downvotes?: number;
 };
 
 // Simulated debug hazards
@@ -110,59 +110,57 @@ export default function SearchPage() {
 
   // Simulate fetching hazards
   const fetchHazards = async (region: Region): Promise<Hazard[]> => {
-      try {
-          const now = new Date();
-          const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000); // 3 days ago in milliseconds
-          const hazardsQuery = query(
-              collection(db, 'hazards'),
-              where('timestamp', '>=', threeDaysAgo), // Filter for hazards within the last 3 days
-              where('downvotes', '<=', 5) // Filter for hazards with 5 or fewer downvotes
-          );
+    try {
+      const now = new Date();
+      const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000); // 3 days ago in milliseconds
+      const hazardsQuery = query(
+        collection(db, 'hazards'),
+        where('timestamp', '>=', threeDaysAgo), // Filter for hazards within the last 3 days
+        where('downvotes', '<=', 5) // Filter for hazards with 5 or fewer downvotes
+      );
+      const querySnapshot = await getDocs(hazardsQuery);
+      const hazardList: Hazard[] = [];
 
-          const querySnapshot = await getDocs(hazardsQuery);
-          const hazardList: Hazard[] = [];
+      // Log the number of documents and the actual data
+      console.log(`Fetched ${querySnapshot.size} hazards from Firestore`);
 
-          // Log the number of documents and the actual data
-          console.log(`Fetched ${querySnapshot.size} hazards from Firestore`);
+      // Iterate through each document and log its data
+      querySnapshot.forEach((doc) => {
+        console.log(`Document ID: ${doc.id}`);
+        console.log('Document Data:', doc.data()); // Logs the actual document data
+        const data = doc.data();
+        const location = data.location;
 
-          // Iterate through each document and log its data
-          querySnapshot.forEach((doc) => {
-              console.log(`Document ID: ${doc.id}`);
-              console.log('Document Data:', doc.data()); // Logs the actual document data
-
-              const data = doc.data();
-              const location = data.location;
-
-              if (
-                  location &&
-                  typeof location.latitude === 'number' &&
-                  typeof location.longitude === 'number' &&
-                  typeof data.hazard === 'string' &&
-                  typeof data.description === 'string'
-              ) {
-                  hazardList.push({
-                      id: doc.id,
-                      type: data.hazard,
-                      rating: data.rating,
-                      description: data.description,
-                      latitude: location.latitude,
-                      longitude: location.longitude,
-                      latitudeDelta: 0.01,
-                      longitudeDelta: 0.01,
-                      upvotes: data.upvotes,
-                      downvotes: data.downvotes
-                  });
-              } else {
-                  console.log(`Invalid data in document ${doc.id}`);
-              }
+        if (
+          location &&
+          typeof location.latitude === 'number' &&
+          typeof location.longitude === 'number' &&
+          typeof data.hazard === 'string' &&
+          typeof data.description === 'string'
+        ) {
+          hazardList.push({
+            id: doc.id,
+            type: data.hazard,
+            rating: data.rating,
+            description: data.description,
+            latitude: location.latitude,
+            longitude: location.longitude,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+            upvotes: data.upvotes,
+            downvotes: data.downvotes
           });
+        } else {
+          console.log(`Invalid data in document ${doc.id}`);
+        }
+      });
 
-          return hazardList;
-      } catch (error) {
-          console.error('Error fetching hazards from Firestore:', error);
-          Alert.alert('Error', 'Failed to fetch hazards from Firestore.');
-          return [];
-      }
+      return hazardList;
+    } catch (error) {
+      console.error('Error fetching hazards from Firestore:', error);
+      Alert.alert('Error', 'Failed to fetch hazards from Firestore.');
+      return [];
+    }
   };
 
   // Fetch address suggestions from Geoapify API
@@ -304,34 +302,34 @@ export default function SearchPage() {
 
   const getColorRating = (rating: string) => {
     switch (rating){
-        case 'Minor':
-            return '#237F52';
-        case 'Low':
-            return '#005387';
-        case 'Medium':
-            return '#F9A900';
-        case 'High':
-            return '#9B2423';
-        default:
-            return 'gray';
+      case 'Minor':
+        return '#237F52';
+      case 'Low':
+        return '#005387';
+      case 'Medium':
+        return '#F9A900';
+      case 'High':
+        return '#9B2423';
+      default:
+        return 'gray';
     }
   }
 
   const getHazardIcon = (type: string, rating: string) => {
-      const color = getColorRating(rating);
-      const iconProps = { size: 30, color};
+    const color = getColorRating(rating);
+    const iconProps = { size: 30, color};
 
-      switch (type.toLowerCase()){
-        case 'fallen tree':
-            return <MaterialCommunityIcons name="tree" {...iconProps}/>;
-        case 'flood':
-            return <MaterialCommunityIcons name="water" {...iconProps}/>;
-        case 'fallen powerline':
-            return <MaterialCommunityIcons name="flash" {...iconProps}/>;
-        case 'fire':
-            return <MaterialCommunityIcons name="fire" {...iconProps}/>;
-        default:
-            return <MaterialCommunityIcons name="map-marker" {...iconProps}/>;
+    switch (type.toLowerCase()){
+      case 'fallen tree':
+        return <MaterialCommunityIcons name="tree" {...iconProps}/>;
+      case 'flood':
+        return <MaterialCommunityIcons name="water" {...iconProps}/>;
+      case 'fallen powerline':
+        return <MaterialCommunityIcons name="flash" {...iconProps}/>;
+      case 'fire':
+        return <MaterialCommunityIcons name="fire" {...iconProps}/>;
+      default:
+        return <MaterialCommunityIcons name="map-marker" {...iconProps}/>;
     }
   };
 
@@ -343,95 +341,96 @@ export default function SearchPage() {
   //console.log("Hazards: ", hazards);
   return (
     <View style={styles.pageContainer}>
-          {/*Settings Button*/}
-          <Pressable
-            onPress={() => {
-              console.log('Navigating to settings'); // Debug: Log navigation
-              router.push('/settings'); // Navigate to settings page
-            }}
-            style={styles.settingsButton}
-          >
-            <Ionicons name="settings" size={24} color="black" />
-          </Pressable>
+      {/*Settings Button*/}
+      <Pressable onPress={() => {
+        console.log('Navigating to settings'); // Debug: Log navigation
+        router.push('/settings'); // Navigate to settings page
+        }}
+        style={styles.settingsButton}
+        >
+        <Ionicons name="settings" size={24} color="black" />
+      </Pressable>
     <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()} accessible={false}>
-        <SafeAreaView style={styles.wrapper}>
-          <View style={styles.titleContainer}>
-            <Text style={styles.title}>Disaster Map</Text>
-          </View>
-          <View style={styles.searchBarContainer}>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search by address or coordinates"
-              placeholderTextColor={theme === 'dark' ? 'gray' : 'black'}
-              value={searchQuery}
-              onChangeText={handleSearchChange}
-              onBlur={handleBlur}
-            />
-            {/* Clear Button */}
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => {
-                setSearchQuery('');
-                setSuggestions([]); // Clear suggestions when clearing the input
-              }} style={styles.clearButton}>
-                <Ionicons name="close-circle" size={20} color="gray" />
-              </TouchableOpacity>
-            )}
-            {/* Three-dot menu */}
-            <Ionicons
-              name="ellipsis-vertical"
-              size={24}
-              color={theme === 'dark' ? 'white' : 'black'}
-              onPress={handleMenuPress} // Trigger the menu action
-              style={styles.menuIcon}
-            />
-          </View>
-
-          {/* Suggestions */}
-          {suggestions.length > 0 && (
-            <FlatList
-              data={suggestions}
-              keyExtractor={(item, index) => `${item}-${index}`}
-              renderItem={({ item }) => (
-                <TouchableOpacity onPress={() => handleAddressSelect(item)} style={styles.suggestionItem}>
-                  <Text style={styles.suggestionText}>{item}</Text>
-                </TouchableOpacity>
-              )}
-            />
+      <SafeAreaView style={styles.wrapper}>
+        <View style={styles.titleContainer}>
+          <Text style={styles.title}>Disaster Map</Text>
+        </View>
+        <View style={styles.searchBarContainer}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by address or coordinates"
+            placeholderTextColor={theme === 'dark' ? 'gray' : 'black'}
+            value={searchQuery}
+            onChangeText={handleSearchChange}
+            onBlur={handleBlur}
+          />
+          {/* Clear Button */}
+          {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => {
+            setSearchQuery('');
+            setSuggestions([]); // Clear suggestions when clearing the input
+            }} style={styles.clearButton}>
+            <Ionicons name="close-circle" size={20} color="gray" />
+          </TouchableOpacity>
           )}
+          {/* Three-dot menu */}
+          <Ionicons
+            name="ellipsis-vertical"
+            size={24}
+            color={theme === 'dark' ? 'white' : 'black'}
+            onPress={handleMenuPress} // Trigger the menu action
+            style={styles.menuIcon}
+          />
+        </View>
 
-          {/* Map */}
-          <View style={styles.mapContainer}>
-            <MapView
-              ref={mapRef}
-              style={styles.map}
-              showsUserLocation={true}
-              followsUserLocation={NAVIGATION_MODE ? true : false}
-              region={currentLocation} // Dynamically update the map region
-              onRegionChangeComplete={(region) => {
-                setCurrentLocation(region);
-                debouncedUpdateHazards(region); // <-- Fetch hazards when the map stops moving
-              }}
-            >
-              {hazards.map((hazard) => (
-                <Marker
-                  key={hazard.id}
-                  coordinate={{ latitude: hazard.latitude, longitude: hazard.longitude }}
-                  title={hazard.type}
-                  //description={hazard.description}
-                  onPress={() => {
-                      console.log('Navigating to viewHazard with ID:', hazard.id);
-                      router.push({ pathname: '/viewHazard', params: { hazardId: hazard.id } });
-                  }}
-                >
+        {/* Suggestions */}
+        {suggestions.length > 0 && (
+          <FlatList
+            data={suggestions}
+            keyExtractor={(item, index) => `${item}-${index}`}
+            renderItem={({ item }) => (
+            <TouchableOpacity onPress={() => handleAddressSelect(item)} style={styles.suggestionItem}>
+              <Text style={styles.suggestionText}>
+                {item}
+              </Text>
+            </TouchableOpacity>
+            )}
+          />
+        )}
+
+        {/* Map */}
+        <View style={styles.mapContainer}>
+          <MapView
+            ref={mapRef}
+            style={styles.map}
+            showsUserLocation={true}
+            followsUserLocation={NAVIGATION_MODE ? true : false}
+            region={currentLocation} // Dynamically update the map region
+            onRegionChangeComplete={(region) => {
+              setCurrentLocation(region);
+              debouncedUpdateHazards(region); // <-- Fetch hazards when the map stops moving
+            }}
+          >
+            {hazards.map((hazard) => (
+              <Marker
+                key={hazard.id}
+                coordinate={{ latitude: hazard.latitude, longitude: hazard.longitude }}
+                title={hazard.type}
+                //description={hazard.description}
+                onPress={() => {
+                  console.log('Navigating to viewHazard with ID:', hazard.id);
+                  router.push({ pathname: '/viewHazard', params: { hazardId: hazard.id } });
+                }}
+              >
                 {getHazardIcon(hazard.type, hazard.rating)}
               </Marker>
-              ))}
-            </MapView>
-          </View>
+            ))}
+          </MapView>
+        </View>
 
-          {/* Loading Indicator */}
-          {loading && <ActivityIndicator style={styles.loadingIndicator} size="large" />}
-        </SafeAreaView>
+        {/* Loading Indicator */}
+        {loading && <ActivityIndicator style={styles.loadingIndicator} size="large" />}
+      </SafeAreaView>
     </TouchableWithoutFeedback>
     </View>
   );
