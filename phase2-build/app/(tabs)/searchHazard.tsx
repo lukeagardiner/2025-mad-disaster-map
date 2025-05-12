@@ -337,10 +337,10 @@ export default function SearchPage() {
 
   /*
   ###################################################################
-  ## -- COMPONENT RENDERING --                                    ##
+  ## -- PRESENTATION / UI --                                    ##
   ###################################################################
   */
-  //console.log("Hazards: ", hazards);
+ 
   return (
     <View style={styles.pageContainer}>
           {/*Settings Button*/}

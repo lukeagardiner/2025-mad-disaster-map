@@ -8,7 +8,13 @@ import { View, Text } from 'react-native';
 // refactoring - coding style and commenting
 // add apply to be verified user button in settings
 // verified user can add a comment on the event that gets broadcast to subscribers
-// move geomapping gey secret out of search hazard
+// move geomapping geo secret out of search hazard
+
+
+// TODO - Add org accounts
+// 1. Master user for account is signed in > add individual user accounts or import user account list of existing users ... csv?
+// 2. User account being added must be pre-existing
+// 3. Process requests for verified account
 
 
 export default function Placeholder() {
