@@ -195,7 +195,7 @@ const getCurrentLocation = async (): Promise<LocationData | null> => {
         latitudeDelta: 0.01,
         longitudeDelta: 0.01,
     };
-  } 
+  }
   catch (error) {
     console.error('Error getting current location:', error);
     //setErrorMsg('Error getting location');
@@ -344,4 +344,5 @@ const styles = StyleSheet.create({
   settingsButton: { position: 'absolute', top: 25, left: 20, padding: 10, zIndex: 1 },
   refreshButton: { position: 'absolute', bottom: '12%', right: '5%', padding: 5, zIndex: 1},
   permissionsContainer: { alignItems: 'center', marginTop: 20 },
+  robotoFont: { fontFamily: 'RobotoRegular' } // Single line for font application
 });

@@ -182,24 +182,19 @@ export default function Settings() {
 
 const styles = StyleSheet.create({
   pageContainer: {
-    //flex: 1,
     flexGrow: 1,
     alignItems: 'center',
     paddingVertical: 20,
-    backgroundColor: 'white', // Can implement nativewind classes for darkmode if required
+    backgroundColor: 'white', // Can implement native wind classes for dark mode if required
   },
   titleContainer: {
-    //padding: 10,
     marginBottom: 20,
     alignItems: 'center',
   },
   text: {
     fontSize: 20,
-    //marginTop: 35,
-    //fontFamily: 'Roboto',
   },
   aboutButton: {
-    //marginTop: '100%',
     marginTop: 20,
     paddingVertical: 10,
     paddingHorizontal: 20,
@@ -217,7 +212,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
-    //fontFamily: 'Roboto',
   },
   aboutContent: {
     marginTop: 10,
@@ -233,7 +227,6 @@ const styles = StyleSheet.create({
     color: '#333',
     textAlign: 'center',
     marginBottom: 5,
-    //fontFamily: 'Roboto',
   },
   robotoFont: {
     fontFamily: 'RobotoRegular', // Single line for font application

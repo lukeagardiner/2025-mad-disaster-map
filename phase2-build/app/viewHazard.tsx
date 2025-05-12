@@ -6,10 +6,10 @@ import { initializeApp } from 'firebase/app';
 import { firebaseConfig } from '@/firebase';
 import { useIsFocused } from '@react-navigation/native';
 import { Stack } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore();
-
 // Geoapify API key (same as in SearchPage)
 const GEOAPIFY_API_KEY = '9bf2f555990c4aa384b93daa6dd23757';
 
@@ -32,10 +32,16 @@ export default function ViewHazard() {
         }
     };
 
-    const dummyImages = [
-        require('@/assets/images/favicon.png'),
-        require('@/assets/images/react-logo.png')
-    ];
+    const handleVoteSelection = async (selection: 'yes' | 'no') => {
+        if (stillThereSelection !== null) return; // Prevent double vote
+        try {
+            setStillThereSelection(selection);
+            await AsyncStorage.setItem(`voteStatus_${hazardId}`, selection);
+            await handleVote(selection === 'yes' ? 'upvote' : 'downvote');
+        } catch (error) {
+            console.error('Failed to save vote status:', error);
+        }
+    };
 
     useEffect(() => {
         const fetchHazard = async () => {
@@ -93,6 +99,11 @@ export default function ViewHazard() {
         );
     }
 
+    const dummyImages = [
+        require('@/assets/images/favicon.png'),
+        require('@/assets/images/react-logo.png')
+    ];
+
     return (
         <>
         <Stack.Screen
@@ -116,6 +127,10 @@ export default function ViewHazard() {
                 <Text style={styles.fieldValue}>{hazard.hazard}</Text>
             </View>
             <View style={styles.fieldBox}>
+                <Text style={styles.fieldLabel}>Rating</Text>
+                <Text style={styles.fieldValue}>{hazard.rating}</Text>
+            </View>
+            <View style={styles.fieldBox}>
                 <Text style={styles.fieldLabel}>Address</Text>
                 <Text style={styles.fieldValue}>{address}</Text>
             </View>
@@ -127,33 +142,47 @@ export default function ViewHazard() {
                 <Text style={styles.fieldLabel}>Description</Text>
                 <Text style={styles.fieldValue}>{hazard.description}</Text>
             </View>
-            {/* This is where images would be implemented */}
             <Text style={styles.fieldLabel}>Submitted Images</Text>
             <View style={styles.imageRow}>
-                    <FlatList data={dummyImages}
-                        keyExtractor={(_,index) => index.toString()}
-                        contentContainerStyle={styles.carouselContainer}
-                        renderItem={({ item }) => (
+                <FlatList
+                    data={dummyImages}
+                    keyExtractor={(_, index) => index.toString()}
+                    contentContainerStyle={styles.carouselContainer}
+                    renderItem={({ item }) => (
                         <Image source={item} style={styles.carouselImage} resizeMode="cover" />
-                        )}
-                        horizontal
-                        pagingEnabled
-                        showsHorizontalScrollIndicator={false}
-                    />
+                    )}
+                    horizontal
+                    pagingEnabled
+                    showsHorizontalScrollIndicator={false}
+                />
             </View>
             <Text style={styles.fieldLabel}>Still There?</Text>
             <View style={styles.voteContainer}>
-                <TouchableOpacity onPress={() => {
-                    setStillThereSelection('yes');
-                    handleVote('upvote');
-                }} style={[styles.voteButton, stillThereSelection === 'yes' && styles.selectedButton ]}>
-                    <Text style={[ styles.voteText, stillThereSelection === 'yes' && styles.voteTextSelected]}>Yes</Text>
+                <TouchableOpacity
+                    onPress={() => handleVoteSelection('yes')}
+                    style={[
+                        styles.voteButton,
+                        stillThereSelection === 'yes' && styles.selectedButton,
+                    ]}
+                    disabled={stillThereSelection !== null}
+                >
+                    <Text style={[
+                        styles.voteText,
+                        stillThereSelection === 'yes' && styles.voteTextSelected
+                    ]}>Yes</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => {
-                    setStillThereSelection('no');
-                    handleVote('downvote');
-                }} style={[ styles.voteButton, stillThereSelection === 'no' && styles.selectedButton ]}>
-                    <Text style={[ styles.voteText, stillThereSelection === 'no' && styles.voteTextSelected ]}>No</Text>
+                <TouchableOpacity
+                    onPress={() => handleVoteSelection('no')}
+                    style={[
+                        styles.voteButton,
+                        stillThereSelection === 'no' && styles.selectedButton,
+                    ]}
+                    disabled={stillThereSelection !== null}
+                >
+                    <Text style={[
+                        styles.voteText,
+                        stillThereSelection === 'no' && styles.voteTextSelected
+                    ]}>No</Text>
                 </TouchableOpacity>
             </View>
         </ScrollView>
@@ -174,9 +203,6 @@ const styles = StyleSheet.create({
     },
     text: {
         fontSize: 20,
-    },
-    robotoFont: {
-        fontFamily: 'Roboto',
     },
     voteButton: {
         paddingVertical: 10,
@@ -223,13 +249,13 @@ const styles = StyleSheet.create({
     fieldValue: {
         fontSize: 16,
         color: '#000',
-        fontFamily: 'Roboto',
     },
     imageRow: {
-        flexDirection: 'row',
-        gap: 10,
-        marginBottom: 20,
-        marginTop: 10,
+      width: '100%',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 20,
+      marginTop: 10,
     },
     imagePlaceholder: {
         width: 80,
@@ -243,11 +269,16 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         paddingHorizontal: 10,
-      },
+    },
     carouselImage: {
       height: 150,
+      width: 150,
       borderRadius: 10,
       borderColor: '#ccc',
       borderWidth: 1,
+      marginHorizontal: 10,
     },
+    robotoFont: {
+    fontFamily: 'RobotoRegular', // Single line for font application
+  },
 });

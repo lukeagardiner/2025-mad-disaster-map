@@ -45,6 +45,7 @@ const debugCoordinates: Region = {
 type Hazard = {
   id: string;
   type: string;
+  rating: string;
   description: string;
   latitude: number;
   longitude: number;
@@ -142,6 +143,7 @@ export default function SearchPage() {
                   hazardList.push({
                       id: doc.id,
                       type: data.hazard,
+                      rating: data.rating,
                       description: data.description,
                       latitude: location.latitude,
                       longitude: location.longitude,
@@ -300,8 +302,24 @@ export default function SearchPage() {
     }, [])
   );
 
-  const getHazardIcon = (type: string) => {
-      const iconProps = { size: 30};
+  const getColorRating = (rating: string) => {
+    switch (rating){
+        case 'Minor':
+            return '#237F52';
+        case 'Low':
+            return '#005387';
+        case 'Medium':
+            return '#F9A900';
+        case 'High':
+            return '#9B2423';
+        default:
+            return 'gray';
+    }
+  }
+
+  const getHazardIcon = (type: string, rating: string) => {
+      const color = getColorRating(rating);
+      const iconProps = { size: 30, color};
 
       switch (type.toLowerCase()){
         case 'fallen tree':
@@ -309,7 +327,7 @@ export default function SearchPage() {
         case 'flood':
             return <MaterialCommunityIcons name="water" {...iconProps}/>;
         case 'fallen powerline':
-            return <MaterialCommunityIcons name="electric-bolt" {...iconProps}/>;
+            return <MaterialCommunityIcons name="flash" {...iconProps}/>;
         case 'fire':
             return <MaterialCommunityIcons name="fire" {...iconProps}/>;
         default:
@@ -405,7 +423,7 @@ export default function SearchPage() {
                       router.push({ pathname: '/viewHazard', params: { hazardId: hazard.id } });
                   }}
                 >
-                {getHazardIcon(hazard.type)}
+                {getHazardIcon(hazard.type, hazard.rating)}
               </Marker>
               ))}
             </MapView>
@@ -469,7 +487,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: 'black',
-    //fontFamily: 'Roboto',
   },
   pageContainer: {
     flex: 1,
@@ -485,5 +502,8 @@ const styles = StyleSheet.create({
   },
   clearButton: {
     marginHorizontal: 5,
+  },
+  robotoFont: {
+      fontFamily: 'RobotoRegular', // Single line for font application
   },
 });
