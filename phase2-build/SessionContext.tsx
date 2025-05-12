@@ -1,8 +1,11 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
+import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 import { app, firebaseConfig } from './firebase.js'; // Import Firebase app and config
 import { PermissionResponse } from 'expo-location';
+
+const db = getFirestore(app); // Firestore instance
 
 // Setup user session types
 type SessionType = 'authenticated' | 'unauthenticated';
@@ -10,6 +13,8 @@ type SessionType = 'authenticated' | 'unauthenticated';
 // For passing session data to other parts of application
 interface SessionData {
   type: SessionType;
+  accountType: number | null; 
+  active: number | null; 
   currentLocation: {
     latitude: number;
     longitude: number;
@@ -38,6 +43,8 @@ const SESSION_KEY = 'userAppSession';
 // Default session constructor / fallback logic
 const defaultSession: SessionData = {
   type: 'unauthenticated',
+  accountType: null, 
+  active: null, 
   currentLocation: null,
   locationPermission: undefined, // Default to undefined
   sessionStartTime: null,
@@ -126,10 +133,27 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
   const login = async (email: string, password: string) => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
+
+      // Adding credential fetch
+      const userDoc = doc(db, 'users', userCredential.user.uid);
+      const userSnapshot = await getDoc(userDoc);
+
+      let accountType = null;
+      let active = null;
+      
+      if (userSnapshot.exists()) {
+        const userData = userSnapshot.data();
+        accountType = userData.accountType || null; 
+        active = userData.active || null; 
+      }
+
+      // Build authenticated session
       const newSession = {
         type: 'authenticated' as SessionType, // Explicitly cast as SessionType
         sessionStartTime: new Date().toISOString(),
         expiry: new Date(Date.now() + 3600 * 1000).toISOString(), // 1-hour expiry
+        accountType,
+        active,
       };
 
       setSession((prev) => ({ ...prev, ...newSession }));
@@ -148,10 +172,20 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
         type: 'authenticated' as SessionType, // Explicitly cast as SessionType
         sessionStartTime: new Date().toISOString(),
         expiry: new Date(Date.now() + 3600 * 1000).toISOString(), // 1-hour expiry
+        // default starting user values
+        accountType: 1, 
+        active: 1,
       };
 
       setSession((prev) => ({ ...prev, ...newSession }));
       await AsyncStorage.setItem(SESSION_KEY, JSON.stringify({ ...session, ...newSession }));
+
+      const userDoc = doc(db, 'users', userCredential.user.uid);
+      await setDoc(userDoc, {
+        accountType: 1,
+        active: 1,
+      });
+
     } catch (error) {
       console.error('Sign-up failed:', error);
       throw error;
