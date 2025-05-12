@@ -52,7 +52,7 @@ type Hazard = {
   latitudeDelta: number;
   longitudeDelta: number;
   upvotes?: number;
-  downvote?: number;
+  downvotes?: number;
 };
 
 // Simulated debug hazards
@@ -79,7 +79,7 @@ type Hazard = {
 
 export default function SearchPage() {
   const { session } = useSession(); // Access session context for initial location
-  const { theme } = useTheme(); // Access the current theme (light or dark)
+  const { theme } = useTheme(); 
 
   // State hooks
   const [currentLocation, setCurrentLocation] = useState<Region>(() => {
@@ -293,7 +293,7 @@ export default function SearchPage() {
     useCallback(() => {
       const loadHazards = async () => {
         setLoading(true);
-        const fetchedHazards = await fetchHazards();
+        const fetchedHazards = await fetchHazards(currentLocation);
         setHazards(fetchedHazards);
         setLoading(false);
       };

@@ -8,6 +8,7 @@ import { View, Text } from 'react-native';
 // refactoring - coding style and commenting
 // add apply to be verified user button in settings
 // verified user can add a comment on the event that gets broadcast to subscribers
+// move geomapping gey secret out of search hazard
 
 
 export default function Placeholder() {
