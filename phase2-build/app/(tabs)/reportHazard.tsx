@@ -221,7 +221,7 @@ export default function ReportHazardScreen() {
             <Pressable
               onPress={() => setIsDropdownOpen(!isDropdownOpen)}
               style={styles.dropdown}>
-              <Text style={styles.dropdownText}>
+              <Text style={styles.dropdown}>
                 {selectedHazard || 'Select a Hazard'}
               </Text>
               <Ionicons
@@ -244,7 +244,7 @@ export default function ReportHazardScreen() {
                       setSelectedHazard(hazardRef); // Set selected hazard
                       setIsDropdownOpen(false); // Close dropdown
                     }}>
-                    <Text style={styles.dropdownMenuText}>{hazardRef}</Text> 
+                    <Text style={styles.dropdownMenu}>{hazardRef}</Text> 
                   </Pressable>
                 ))}
               </View>
@@ -262,7 +262,7 @@ export default function ReportHazardScreen() {
             <Pressable
                 onPress={() => setIsDropdownOpen2(!isDropdownOpen2)}
                 style={styles.dropdown}>
-                <Text style={styles.dropdownText}>
+                <Text style={styles.dropdown}>
                   {selectedHazardRating || 'Hazard Rating'}
                 </Text>
                 <Ionicons
@@ -285,7 +285,7 @@ export default function ReportHazardScreen() {
                         setSelectedHazardRating(hazardRating); // Set selected hazard
                         setIsDropdownOpen2(false); // Close dropdown
                       }}>
-                      <Text style={styles.dropdownMenuText}>{hazardRating}</Text>
+                      <Text style={styles.dropdownMenu}>{hazardRating}</Text>
                     </Pressable>
                   ))}
                 </View>
@@ -550,7 +550,8 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   addressInput: {
-    textAlignVertical: 'left',
+    textAlignVertical: 'center',
+    textAlign: 'left',
     color: 'black',
   },
   addressContainer: {
@@ -571,7 +572,7 @@ const styles = StyleSheet.create({
     width: '75%',
     maxHeight: 150,
     marginTop: 4,
-    zIndex: 10, // make sure it shows above other elements
+    zIndex: 10, // priority to force show above other elements
   },
   suggestionItem: {
     padding: 10,
@@ -588,6 +589,6 @@ const styles = StyleSheet.create({
   fontWeight: '600',
   },
   robotoFont: {
-      fontFamily: 'RobotoRegular', // Single line for font application
+      fontFamily: 'RobotoRegular',
   },
 });

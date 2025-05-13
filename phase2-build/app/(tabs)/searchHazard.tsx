@@ -52,7 +52,7 @@ type Hazard = {
   latitudeDelta: number;
   longitudeDelta: number;
   upvotes?: number;
-  downvote?: number;
+  downvotes?: number;
 };
 
 // Simulated debug hazards
@@ -78,8 +78,8 @@ type Hazard = {
 ];*/
 
 export default function SearchPage() {
-  const { session } = useSession(); // Access session context for initial location
-  const { theme } = useTheme(); // Access the current theme (light or dark)
+  const { session, updateSession } = useSession(); // Access session context for initial location
+  const { theme } = useTheme(); 
 
   // State hooks
   const [currentLocation, setCurrentLocation] = useState<Region>(() => {
@@ -96,6 +96,7 @@ export default function SearchPage() {
     }
   });
 
+  const [searchLocation, setSearchLocation] = useState<Region | null>(null); // NEW: State for searched location
   const [searchQuery, setSearchQuery] = useState(''); // User input for search
   const [hazards, setHazards] = useState<Hazard[]>([]); // Hazards to display
   const [loading, setLoading] = useState(false); // Loading state
@@ -236,6 +237,7 @@ export default function SearchPage() {
   };
 
   // Handle address selection
+  /*
   const handleAddressSelect = async (address: string) => {
     console.log(`DEBUG: Address selected: ${address}`);
     setSearchQuery(address);
@@ -251,16 +253,65 @@ export default function SearchPage() {
     }
     if(selectedLocation){
       setCurrentLocation(selectedLocation);
-      mapRef.current?.animateToRegion(selectedLocation, 1000); // Smoothly pan to location
+      updateSession({ searchLocation: selectedLocation });
+      console.log('DEBUG: Search Location:', selectedLocation);
+      if (searchLocation) {
+        mapRef.current?.animateToRegion(searchLocation, 1000); // Smoothly pan to location
+      }
+      else {
+        mapRef.current?.animateToRegion(selectedLocation, 1000);
+        console.log('DEBUG: Animating to Selected Location:', selectedLocation);
+      }
       await updateHazards(selectedLocation);
     }
+  };*/
+  const [selectedSuggestion, setSelectedSuggestion] = useState(false);
+
+  const handleAddressSelect = async (address: string) => {
+    console.log(`DEBUG: Address selected: ${address}`);
+    setSearchQuery(address); // Set the selected address in the search bar
+    setSuggestions([]); // Clear suggestions once an address is selected
+  
+    await new Promise(resolve => setTimeout(resolve, 10));
+    const selectedLocation = await geocodeAddress(address); 
+
+    if (selectedLocation) {
+      setCurrentLocation(selectedLocation); // Update map's current location
+      setSearchLocation(selectedLocation); // Set the searched location
+      updateSession({ searchLocation: selectedLocation });
+      console.log('DEBUG: Search Location:', selectedLocation);
+  
+      // Pan to selected
+      mapRef.current?.animateToRegion(selectedLocation, 1000);  
+  
+      // Optionally fetch hazards for the new location
+      await updateHazards(selectedLocation);
+    }
+    setSelectedSuggestion(true);
   };
 
   // Trigger search when the search field loses focus
+  /*
   const handleBlur = () => {
     if (searchQuery) {
       handleAddressSelect(searchQuery);
     }
+  };
+  */
+  const handleBlur = () => {
+    if (selectedSuggestion) {
+      setSelectedSuggestion(false);
+      return;
+    }
+    geocodeAddress(searchQuery).then((location) => {
+      if (location) {
+        setCurrentLocation(location);
+        setSearchLocation(location);
+        updateSession({ searchLocation: location });
+        mapRef.current?.animateToRegion(location, 1000);
+        updateHazards(location);
+      }
+    });
   };
 
   // Show an alert for the three-dot menu (placeholder for future functionality)
@@ -293,7 +344,7 @@ export default function SearchPage() {
     useCallback(() => {
       const loadHazards = async () => {
         setLoading(true);
-        const fetchedHazards = await fetchHazards();
+        const fetchedHazards = await fetchHazards(currentLocation);
         setHazards(fetchedHazards);
         setLoading(false);
       };
@@ -337,10 +388,10 @@ export default function SearchPage() {
 
   /*
   ###################################################################
-  ## -- COMPONENT RENDERING --                                    ##
+  ## -- PRESENTATION / UI --                                    ##
   ###################################################################
   */
-  //console.log("Hazards: ", hazards);
+
   return (
     <View style={styles.pageContainer}>
           {/*Settings Button*/}
@@ -387,12 +438,29 @@ export default function SearchPage() {
           </View>
 
           {/* Suggestions */}
+          {/*
           {suggestions.length > 0 && (
             <FlatList
               data={suggestions}
               keyExtractor={(item, index) => `${item}-${index}`}
               renderItem={({ item }) => (
                 <TouchableOpacity onPress={() => handleAddressSelect(item)} style={styles.suggestionItem}>
+                  <Text style={styles.suggestionText}>{item}</Text>
+                </TouchableOpacity>
+              )}
+            />
+          )}
+          */}
+          {/* Suggestions Dropdown */}
+          {suggestions.length > 0 && (
+            <FlatList
+              data={suggestions}
+              keyExtractor={(item, index) => `${item}-${index}`}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  onPress={() => handleAddressSelect(item)} // Handle selection
+                  style={styles.suggestionItem}
+                >
                   <Text style={styles.suggestionText}>{item}</Text>
                 </TouchableOpacity>
               )}
@@ -412,6 +480,16 @@ export default function SearchPage() {
                 debouncedUpdateHazards(region); // <-- Fetch hazards when the map stops moving
               }}
             >
+              {searchLocation && (
+                <Marker
+                  coordinate={{
+                    latitude: searchLocation.latitude,
+                    longitude: searchLocation.longitude,
+                  }}
+                  title="pin"
+                  description={`Address: ${searchQuery}\nCoordinates: (${searchLocation.latitude}, ${searchLocation.longitude})`}
+                />
+                )}
               {hazards.map((hazard) => (
                 <Marker
                   key={hazard.id}
