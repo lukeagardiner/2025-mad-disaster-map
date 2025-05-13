@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, Pressable, GestureResponderEvent, TextInput, Keyboard, Button, TouchableWithoutFeedback, Image, Dimensions, FlatList, } from "react-native";
+import { View, Text, StyleSheet, Pressable, GestureResponderEvent, TextInput, Keyboard, } from "react-native";
+import { TouchableWithoutFeedback, Image, Dimensions, FlatList, } from "react-native";
 import React, { useEffect, useRef, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
@@ -6,28 +7,18 @@ import { router } from "expo-router";
 import { getFirestore, collection, addDoc } from "firebase/firestore";
 import { initializeApp } from "firebase/app";
 import { firebaseConfig } from "@/firebase";
-import Index from ".";
+import { useTheme } from "@/theme/ThemeContext"; // Access theme controls
 
 const app = initializeApp(firebaseConfig); // Initialize Firebase app
 const db = getFirestore(); // Initialize Firestore instance once
 
-/*
-  Also install these modules:
-*/
-//npm install @expo/vector-icons
-//npm install expo-image-picker
-//npm install expo-router
-
-// TODO
-//-include address input
-//-be triggered from pin in index or search page
-//-acquire dynamic hazard def from firestore
-
 export default function ReportHazardScreen() {
+  const { theme } = useTheme(); // Get current theme from ThemeContext
+  const styles = getStyles(theme); // Pass theme to getStyles
   const GEOAPIFY_API_KEY = "9bf2f555990c4aa384b93daa6dd23757"; // API key for geocoding service
   const descriptionRef = useRef(null); // Reference to the description input field
   const [selectedHazard, setSelectedHazard] = useState(""); // State to track the selected hazard
-  const [selectedHazardRating, setSelectedHazardRating] = useState(""); //State to track hazard rating
+  const [selectedHazardRating, setSelectedHazardRating] = useState(""); // State to track hazard rating
   const [isDropdownOpen, setIsDropdownOpen] = useState(false); // Tracks dropdown state
   const [isDropdownOpen2, setIsDropdownOpen2] = useState(false); // Tracks dropdown state
   const [description, setDescription] = useState(""); // Tracks the description state
@@ -35,28 +26,28 @@ export default function ReportHazardScreen() {
   const addressRef = useRef(null); // Reference to the address input field
   const [images, setImages] = useState<string[]>([]); // State to track the selected images (URIs)
   const hazardOptions = ["Flood", "Fallen Tree", "Fallen Powerline", "Fire"]; // Hazard options for the dropdown list
-  const hazardSeverity = ["Minor", "Low", "Medium", "High"]; //Hazard rating for dropdown list
+  const hazardSeverity = ["Minor", "Low", "Medium", "High"]; // Hazard rating for dropdown list
   const MAX_WORD_COUNT = 256; // Maximum word count for the description
   const MAX_IMAGES = 3; // Maximum number of images allowed
   const [suggestions, setSuggestions] = useState([]); // State to store address suggestions
 
-  // This function resets the dropdown selection to the default value for hazard types
+  // Reset dropdown selection to default value for hazard types
   function clearSelection(event: GestureResponderEvent): void {
-    setSelectedHazard(""); // Clear the selected hazard state
+    setSelectedHazard("");
   }
 
-  // This function resets the dropdown selection to the default value for hazard rating
+  // Reset dropdown selection to default value for hazard rating
   function clearRatingSelection(event: GestureResponderEvent): void {
-    setSelectedHazardRating(""); // Clear the selected hazard state
+    setSelectedHazardRating("");
   }
 
-  // Function to count the number of words in a given text
+  // Count the number of words in a given text
   const countWords = (text: string) => {
     const words = text.trim().split(/\s+/);
-    return words.length; // Return the word count
+    return words.length;
   };
 
-  // Function to fetch address suggestions based on the input text
+  // Fetch address suggestions from Geoapify API
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
 
   const addressSuggestions = (text: string) => {
@@ -78,14 +69,13 @@ export default function ReportHazardScreen() {
     }, 300); // debounce delay
   };
 
-  // Function to handle changes in the address input field. Provides suggestions and sets the address
+  // Handle changes in the address input field
   const handleAddressChange = (text: string) => {
     addressSuggestions(text);
     setAddress(text);
   };
 
-  // Function to handle changes in the description input field
-  // Contains max word count feature
+  // Handle changes in the description input field with max word count
   const handleDescriptionChange = (text: string) => {
     const wordCount = countWords(text);
     if (wordCount <= MAX_WORD_COUNT) {
@@ -94,9 +84,9 @@ export default function ReportHazardScreen() {
       alert(`Maximum word count is ${MAX_WORD_COUNT}`);
     }
   };
-  // Function to pick an image from the device's media library
+
+  // Pick an image from the device's media library
   const pickImage = async () => {
-    // Request permission to access the media library
     const permissionResult =
       await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (permissionResult.granted === false) {
@@ -104,37 +94,13 @@ export default function ReportHazardScreen() {
       return;
     }
 
-    // Launch the image picker to select an image
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
       aspect: [4, 3],
       quality: 1,
     });
-    // Check if the user canceled the image selection
-    if (!result.canceled) {
-      const selectedImages = result.assets.map((asset) => asset.uri); // Extract URIs from selected assets
-      setImages((prevImages) => {
-        const newImages = [...prevImages, ...selectedImages]; // Combine previous and new images
-        return newImages.slice(0, MAX_IMAGES); // Limit to the maximum number of images
-      });
-    }
-  };
-  // Function to take a photo using the camera
-  const takePhoto = async () => {
-    // Request permission to access the camera
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== "granted") {
-      alert("Camera permission is required!");
-      return;
-    }
-    // Launch the camera to take a photo
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      aspect: [4, 3],
-      quality: 1,
-    });
-    // Check if the user canceled the image selection
+
     if (!result.canceled) {
       const selectedImages = result.assets.map((asset) => asset.uri);
       setImages((prevImages) => {
@@ -144,13 +110,37 @@ export default function ReportHazardScreen() {
     }
   };
 
-  // Function to delete an image from the selected images list
+  // Take a photo using the camera
+  const takePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== "granted") {
+      alert("Camera permission is required!");
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      const selectedImages = result.assets.map((asset) => asset.uri);
+      setImages((prevImages) => {
+        const newImages = [...prevImages, ...selectedImages];
+        return newImages.slice(0, MAX_IMAGES);
+      });
+    }
+  };
+
+  // Delete an image from the selected images list
   const handleDeleteImage = (indexToDelete: number) => {
     setImages((prevImages) =>
       prevImages.filter((_, index) => index !== indexToDelete)
     );
   };
 
+  // Geocode an address to latitude and longitude using Geoapify API
   const geocodeAddress = async (
     address: string
   ): Promise<{ lat: number; lon: number } | null> => {
@@ -175,17 +165,17 @@ export default function ReportHazardScreen() {
 
   return (
     <View style={styles.pageContainer}>
-      {/*Settings Button*/}
+      {/* Settings Button */}
       <Pressable
         onPress={() => {
           console.log("Navigating to settings");
-          router.push("/settings"); // Navigate to settings page
+          router.push("/settings");
         }}
         style={styles.settingsButton}
       >
-        <Ionicons name="settings" size={24} color="black" />
+        <Ionicons name="settings" size={24} color={theme === "dark" ? "white" : "black"} />
       </Pressable>
-      {/*Dismiss keyboard when tapping outside of TextInput*/}
+      {/* Dismiss keyboard when tapping outside of TextInput */}
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
         <View style={styles.titleContainer}>
           <Text style={styles.title}>Disaster Map</Text>
@@ -195,12 +185,13 @@ export default function ReportHazardScreen() {
           <View style={styles.addressContainer}>
             <TextInput
               style={styles.addressInput}
-              placeholder="Enter Address" // Placeholder text
-              value={address} // Bind to description state for address input
-              ref={addressRef} // Reference to the description input field
-              onChangeText={handleAddressChange} // Handle text input changes
-              multiline // Allow multiline input
-              maxLength={50} // Limit to 256 characters
+              placeholder="Enter Address"
+              placeholderTextColor={theme === 'dark' ? 'white' : 'gray' }
+              value={address}
+              ref={addressRef}
+              onChangeText={handleAddressChange}
+              multiline
+              maxLength={50}
             />
           </View>
           {/* Address Suggestions List */}
@@ -211,16 +202,16 @@ export default function ReportHazardScreen() {
               renderItem={({ item }: { item: any }) => (
                 <Pressable
                   onPress={() => {
-                    setAddress(item.properties.formatted); // Set address string
-                    setSuggestions([]); // Clear suggestions
+                    setAddress(item.properties.formatted);
+                    setSuggestions([]);
                   }}
                 >
-                  <Text style={{ padding: 10 }}>
+                  <Text style={{ padding: 10, color: theme === 'dark' ? 'white' : 'gray' }}>
                     {item.properties.formatted}
                   </Text>
                 </Pressable>
               )}
-              style={{ width: "90%", maxHeight: 200 }} // Style for the FlatList
+              style={{ width: "90%", maxHeight: 200 }}
             />
           )}
 
@@ -236,14 +227,12 @@ export default function ReportHazardScreen() {
               <Ionicons
                 name={isDropdownOpen ? "chevron-up" : "chevron-down"}
                 size={20}
-                color="black"
+                color={theme === 'dark' ? 'white' : 'gray'}
                 style={styles.dropdownArrow}
               />
             </Pressable>
-            {/* Dropdown Menu */}
             {isDropdownOpen && (
               <View style={styles.dropdownMenu}>
-                {/* Map through hazard options and create Pressable items */}
                 {hazardOptions.map((hazardRef, index) => (
                   <Pressable
                     key={index}
@@ -262,10 +251,10 @@ export default function ReportHazardScreen() {
 
           {/* Clear button for Hazard Options */}
           <Pressable style={styles.clearText} onPress={clearSelection}>
-            <Text>Clear Selection</Text>
+            <Text style={{ color: theme === "dark" ? "#aaa" : "#d3d3d3" }}>Clear Selection</Text>
           </Pressable>
 
-          {/*Hazard options dropdown list */}
+          {/* Hazard Rating dropdown list */}
           <View style={styles.dropdownContainer}>
             <Pressable
               onPress={() => setIsDropdownOpen2(!isDropdownOpen2)}
@@ -277,11 +266,10 @@ export default function ReportHazardScreen() {
               <Ionicons
                 name={isDropdownOpen2 ? "chevron-up" : "chevron-down"}
                 size={20}
-                color="black"
+                color={theme === "dark" ? "white" : "black"}
                 style={styles.dropdownArrow}
               />
             </Pressable>
-            {/* Hazard Rating Dropdown Menu */}
             {isDropdownOpen2 && (
               <View style={styles.dropdownMenu}>
                 {hazardSeverity.map((hazardRating, index) => (
@@ -289,8 +277,8 @@ export default function ReportHazardScreen() {
                     key={index}
                     style={{ padding: 10 }}
                     onPress={() => {
-                      setSelectedHazardRating(hazardRating); // Set selected hazard
-                      setIsDropdownOpen2(false); // Close dropdown
+                      setSelectedHazardRating(hazardRating);
+                      setIsDropdownOpen2(false);
                     }}
                   >
                     <Text style={styles.dropdownMenuText}>{hazardRating}</Text>
@@ -302,36 +290,33 @@ export default function ReportHazardScreen() {
 
           {/* Clear Selection Button for Hazard Rating */}
           <Pressable style={styles.clearText} onPress={clearRatingSelection}>
-            <Text>Clear Selection</Text>
+            <Text style={{ color: theme === "dark" ? "#aaa" : "#d3d3d3" }}>Clear Selection</Text>
           </Pressable>
 
-          {/*Description Input field*/}
+          {/* Description Input field */}
           <View style={styles.descriptionContainer}>
             <TextInput
               style={styles.descriptionInput}
-              placeholder="Enter a description (max 256 words)" // Placeholder text
+              placeholder="Enter a description (max 256 words)"
+              placeholderTextColor={theme === 'dark' ? 'white' : 'gray'}
               value={description}
-              ref={descriptionRef} // Reference to the description input field
-              onChangeText={handleDescriptionChange} // Handle text input changes
+              ref={descriptionRef}
+              onChangeText={handleDescriptionChange}
               multiline
               maxLength={256}
             />
             <Text style={styles.wordCount}>
-              {/* Display word count and maximum word count */}
-              {/* This text shows the current word count and the maximum allowed */}
               Word Count: {countWords(description)} / {MAX_WORD_COUNT}
             </Text>
           </View>
 
           <Text style={styles.textImage}>Upload Images</Text>
-          {/* Image Upload Buttons: This step works */}
+          {/* Image Upload Buttons */}
           <View style={styles.imageButtonsContainer}>
             <Pressable style={styles.imageButton} onPress={pickImage}>
-              {/* Pick Image from Gallery */}
               <Text style={styles.imageButtonText}>Image from Gallery</Text>
             </Pressable>
             <Pressable style={styles.imageButton} onPress={takePhoto}>
-              {/* Take Photo using Camera */}
               <Text style={styles.imageButtonText}>Take Photo</Text>
             </Pressable>
           </View>
@@ -341,22 +326,20 @@ export default function ReportHazardScreen() {
             <View style={styles.flatListContainer}>
               <FlatList
                 data={images}
-                horizontal // Display images horizontally
+                horizontal
                 keyExtractor={(item, index) => index.toString()}
-                // Render each image with delete button
-                // This function renders each image in the FlatList
                 renderItem={({ item, index }) => (
                   <View style={styles.imageItem}>
                     <Image source={{ uri: item }} style={styles.pagerImage} />
                     <Pressable
                       style={styles.deleteButton}
-                      onPress={() => handleDeleteImage(index)} // Delete image
+                      onPress={() => handleDeleteImage(index)}
                     >
                       <Ionicons name="close-circle" size={24} color="red" />
                     </Pressable>
                   </View>
                 )}
-                showsHorizontalScrollIndicator={true} // Hide horizontal scroll indicator
+                showsHorizontalScrollIndicator={true}
               />
             </View>
           )}
@@ -364,26 +347,17 @@ export default function ReportHazardScreen() {
           <Pressable
             style={styles.submitButton}
             onPress={async () => {
-              // Firestore instance is already initialized at a higher scope
-              // Check if a hazard is selected and description is provided
-              if (
-                !selectedHazard ||
-                !selectedHazardRating ||
-                !description ||
-                !address
-              ) {
-                // Alert if no hazard or description is provided
+              if (!selectedHazard || !selectedHazardRating || !description || !address) {
                 alert("Please fill out all fields.");
                 return;
               }
               alert("Hazard is being processed");
-              const coords = await geocodeAddress(address); // Geocode the address to get coordinates
+              const coords = await geocodeAddress(address);
               if (!coords) {
                 alert("Invalid address. Please try again.");
                 return;
               }
               try {
-                // Add a new document to the "hazards" collection in Firestore
                 await addDoc(collection(db, "hazards"), {
                   hazard: selectedHazard,
                   rating: selectedHazardRating,
@@ -418,188 +392,166 @@ export default function ReportHazardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  pageContainer: {
-    flex: 1,
-    backgroundColor: "white",
-  },
-  titleContainer: {
-    padding: 10,
-    alignItems: "center",
-    marginTop: 20,
-    flex: 1,
-    position: "relative",
-  },
-  settingsButton: {
-    position: "absolute",
-    top: 25,
-    left: 20,
-    backgroundColor: "white",
-    borderRadius: 10,
-    padding: 10,
-    zIndex: 1,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "black",
-  },
-  text: {
-    fontSize: 20,
-    marginTop: 35,
-  },
-  textImage: {
-    marginTop: 10,
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#555",
-    marginBottom: 10,
-  },
-  clearText: {
-    marginTop: 8,
-    fontSize: 14,
-    color: "#d3d3d3",
-  },
-  dropdownContainer: {
-    width: "90%",
-    marginTop: 20,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    backgroundColor: "#f9f9f9",
-  },
-  dropdown: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    padding: 10,
-    borderColor: "#ccc",
-    backgroundColor: "#f9f9f9",
-    borderRadius: 8,
-  },
-  dropdownArrow: {
-    marginLeft: 10,
-  },
-  dropdownMenu: {
-    borderRadius: 8,
-    borderColor: "#ccc",
-  },
-  selectedText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: "black",
-  },
-  descriptionContainer: {
-    width: "90%",
-    marginTop: 20,
-  },
-  descriptionInput: {
-    height: 150,
-    textAlignVertical: "top",
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    padding: 10,
-    backgroundColor: "#f9f9f9",
-    fontSize: 16,
-    color: "black",
-  },
-  wordCount: {
-    marginTop: 5,
-    fontSize: 14,
-    color: "#666",
-    textAlign: "right",
-  },
-  imageButtonsContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 10,
-    marginBottom: 30,
-  },
-  imageButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 30,
-    borderRadius: 5,
-    marginHorizontal: 5,
-    borderColor: "#888",
-    backgroundColor: "#fff",
-    borderWidth: 1,
-  },
-  submitButton: {
-    backgroundColor: "#3385FF",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-    marginTop: 20,
-    alignItems: "center",
-    zIndex: 10,
-    position: "relative",
-  },
-  imageButtonText: {
-    color: "#6a5acd",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  flatListContainer: {
-    marginTop: 20,
-    paddingHorizontal: 10,
-  },
-  imageItem: {
-    marginRight: 10,
-    position: "relative",
-  },
-  pagerImage: {
-    width: 200,
-    height: 200,
-    borderRadius: 10,
-    resizeMode: "cover",
-  },
-  deleteButton: {
-    position: "absolute",
-    top: 5,
-    right: 5,
-    backgroundColor: "rgba(255, 255, 255, 0.7)",
-    borderRadius: 12,
-    zIndex: 1,
-  },
-  addressInput: {
-    textAlignVertical: "left",
-    color: "black",
-  },
-  addressContainer: {
-    width: "90%",
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    padding: 5,
-    marginTop: 15,
-    marginBottom: 5,
-    backgroundColor: "#f9f9f9",
-  },
-  suggestionList: {
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
-    width: "75%",
-    maxHeight: 150,
-    marginTop: 4,
-    zIndex: 10, // make sure it shows above other elements
-  },
-  suggestionItem: {
-    padding: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-  },
-  suggestionText: {
-    fontSize: 14,
-    color: "black",
-  },
-  submitButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  robotoFont: {
-    fontFamily: "RobotoRegular", // Single line for font application
-  },
-});
+const getStyles = (theme: "light" | "dark") =>
+  StyleSheet.create({
+    pageContainer: {
+      flex: 1,
+      backgroundColor: theme === "dark" ? "#121212" : "white",
+    },
+    titleContainer: {
+      padding: 10,
+      alignItems: "center",
+      marginTop: 20,
+      flex: 1,
+      position: "relative",
+    },
+    settingsButton: {
+      position: "absolute",
+      top: 25,
+      left: 20,
+      borderRadius: 10,
+      padding: 10,
+      zIndex: 1,
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: "bold",
+      color: theme === "dark" ? "white" : "black",
+    },
+    text: {
+      fontSize: 20,
+      marginTop: 35,
+      color: theme === "dark" ? "white" : "black",
+    },
+    textImage: {
+      marginTop: 10,
+      fontSize: 14,
+      fontWeight: "600",
+      color: theme === "dark" ? "#ccc" : "#555",
+      marginBottom: 10,
+    },
+    clearText: {
+      marginTop: 8,
+      fontSize: 14,
+    },
+    dropdownContainer: {
+      width: "90%",
+      marginTop: 20,
+      borderWidth: 1,
+      borderColor: theme === "dark" ? "#444" : "#ccc",
+      borderRadius: 8,
+      backgroundColor: theme === "dark" ? "#222" : "#f9f9f9",
+    },
+    dropdown: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      padding: 10,
+      borderColor: theme === "dark" ? "#444" : "#ccc",
+      backgroundColor: theme === "dark" ? "#222" : "#f9f9f9",
+      borderRadius: 8,
+    },
+    dropdownArrow: {
+      marginLeft: 10,
+    },
+    dropdownMenu: {
+      borderRadius: 8,
+      borderColor: theme === "dark" ? "#444" : "#ccc",
+    },
+    dropdownText: {
+      color: theme === "dark" ? "white" : "black",
+    },
+    dropdownMenuText: {
+      color: theme === "dark" ? "#eee" : "#000",
+    },
+    descriptionContainer: {
+      width: "90%",
+      marginTop: 20,
+    },
+    descriptionInput: {
+      height: 150,
+      textAlignVertical: "top",
+      borderWidth: 1,
+      borderColor: theme === "dark" ? "#444" : "#ccc",
+      borderRadius: 8,
+      padding: 10,
+      backgroundColor: theme === "dark" ? "#1a1a1a" : "#f9f9f9",
+      fontSize: 16,
+      color: theme === "dark" ? "white" : "black",
+    },
+    wordCount: {
+      marginTop: 5,
+      fontSize: 14,
+      color: theme === "dark" ? "#aaa" : "#666",
+      textAlign: "right",
+    },
+    imageButtonsContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginTop: 10,
+      marginBottom: 30,
+    },
+    imageButton: {
+      paddingVertical: 10,
+      paddingHorizontal: 30,
+      borderRadius: 5,
+      marginHorizontal: 5,
+      backgroundColor: "#3385FF",
+      borderWidth: 1,
+    },
+    imageButtonText: {
+      color: "#fff",
+      fontSize: 16,
+      fontWeight: "bold",
+    },
+    flatListContainer: {
+      marginTop: 20,
+      paddingHorizontal: 10,
+    },
+    imageItem: {
+      marginRight: 10,
+      position: "relative",
+    },
+    pagerImage: {
+      width: 200,
+      height: 200,
+      borderRadius: 10,
+      resizeMode: "cover",
+    },
+    deleteButton: {
+      position: "absolute",
+      top: 5,
+      right: 5,
+      backgroundColor: "rgba(255, 255, 255, 0.7)",
+      borderRadius: 12,
+      zIndex: 1,
+    },
+    addressInput: {
+      textAlignVertical: "left",
+      color: theme === "dark" ? "white" : "black",
+    },
+    addressContainer: {
+      width: "90%",
+      borderWidth: 1,
+      borderColor: theme === "dark" ? "#444" : "#ccc",
+      borderRadius: 8,
+      padding: 5,
+      marginTop: 15,
+      marginBottom: 5,
+      backgroundColor: theme === "dark" ? "#1a1a1a" : "#f9f9f9",
+    },
+    submitButton: {
+      backgroundColor: "#3385FF",
+      paddingVertical: 10,
+      paddingHorizontal: 20,
+      borderRadius: 5,
+      marginTop: 20,
+      alignItems: "center",
+      zIndex: 10,
+      position: "relative",
+    },
+    submitButtonText: {
+      color: "#fff",
+      fontSize: 16,
+      fontWeight: "600",
+    },
+  });

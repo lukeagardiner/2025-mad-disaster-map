@@ -1,13 +1,14 @@
-import { StyleSheet, Platform, View, TouchableWithoutFeedback, Keyboard, Text, TextInput, KeyboardAvoidingView, TouchableOpacity, Pressable, FlexAlignType } from 'react-native';
+import { StyleSheet, Platform, View, TouchableWithoutFeedback, Keyboard, Text, TextInput,
+  KeyboardAvoidingView, TouchableOpacity, Pressable, FlexAlignType } from 'react-native';
 import { useState } from 'react';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/theme/ThemeContext';
 import { useSession } from '../../SessionContext';
-// Import the functions you need from the SDKs you need
 import { initializeApp, FirebaseError } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
-import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword, signOut, initializeAuth } from "firebase/auth";
+import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword, signOut,
+  initializeAuth } from "firebase/auth";
 import { app } from '../../firebase.js';
 import '../../firebase.js'; // Import Firebase configuration
 import { set } from 'lodash';
@@ -33,11 +34,8 @@ const INITIAL_ERROR = ''; // Initial error state
 */
 
 export default function LoginScreen() {
-  // theme
   const { theme } = useTheme();
-  // session
   const { session, updateSession, clearSession} = useSession();
-  // Initialize Firebase
   const app = initializeApp(firebaseConfig);
   //const analytics = getAnalytics(app);
   const auth = getAuth(app); // Initialize Firebase Authentication
@@ -88,7 +86,7 @@ export default function LoginScreen() {
           });
           setLoginout(true);
           <Text>Login successful</Text>;
-          router.push('/(tabs)'); // Navigate to the main tabs page after successful login
+          router.push('/(tabs)');
         })
         .catch((error) => {
           const errorCode = error.code;
@@ -115,7 +113,7 @@ export default function LoginScreen() {
         updateSession({
           type: 'authenticated',
           sessionStartTime: new Date().toISOString(),
-          expiry: new Date(Date.now() + 3600 * 1000).toISOString(), //  Sets expiry for 1 hour into the future
+          expiry: new Date(Date.now() + 3600 * 1000).toISOString(), //Sets expiry for 1 hour into the future
         });
 
         // Display success popup
@@ -129,12 +127,12 @@ export default function LoginScreen() {
         if (error instanceof FirebaseError) {
           const errorCode = error.code; 
           const errorMessage = error.message; 
-        console.log('Error creating user:', errorCode + " " + errorMessage); // Debug: Log error information
-        setError(errorMessage); // Set error state to display message
+        console.log('Error creating user:', errorCode + " " + errorMessage);
+        setError(errorMessage);
         }
         else {
           console.log('Unexpected error:', error);
-          setError('An unexpected error occurred. Please try again.'); // Fallback error message
+          setError('An unexpected error occurred. Please try again.');
         }
       }       
     } else {
@@ -197,7 +195,7 @@ export default function LoginScreen() {
           </View>
         </View>
       )}
-      //KeyboardAvoidingView to adjust view when keyboard is open
+      {/* Keyboard Avoiding View */}
       <KeyboardAvoidingView 
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}> 

@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { StyleSheet, View, SafeAreaView, TextInput, Text, ActivityIndicator, FlatList, TouchableOpacity, Alert, TouchableWithoutFeedback, Keyboard, Pressable } from 'react-native';
+import { StyleSheet, View, SafeAreaView, TextInput, Text, ActivityIndicator,
+  FlatList, TouchableOpacity, Alert, TouchableWithoutFeedback, Keyboard, Pressable
+} from 'react-native';
 import MapView, { Marker, Region } from 'react-native-maps';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { debounce } from 'lodash';
@@ -11,7 +13,7 @@ import { collection, getDocs, getFirestore, Timestamp, query, where } from 'fire
 import { initializeApp } from 'firebase/app';
 import { firebaseConfig } from '@/firebase';
 
-
+// Initialize Firebase app and Firestore
 const app=initializeApp(firebaseConfig); // Initialize Firebase app
 const db = getFirestore(); // Initialize Firestore instance once
 const GEOAPIFY_API_KEY = '9bf2f555990c4aa384b93daa6dd23757'; // API key for geocoding service
@@ -23,7 +25,6 @@ const GEOAPIFY_API_KEY = '9bf2f555990c4aa384b93daa6dd23757'; // API key for geoc
 
 const DEBUG_MODE = 0; // Set to 1 to enable debug mode, 0 for production mode
 const NAVIGATION_MODE = 0;
-
 // Default location (Brisbane, Australia)
 const DEFAULT_REGION: Region = {
   latitude: -27.4698,
@@ -80,6 +81,7 @@ type Hazard = {
 export default function SearchPage() {
   const { session } = useSession(); // Access session context for initial location
   const { theme } = useTheme(); // Access the current theme (light or dark)
+  const styles = getStyles(theme); // Get styles based on the current theme
 
   // State hooks
   const [currentLocation, setCurrentLocation] = useState<Region>(() => {
@@ -104,24 +106,23 @@ export default function SearchPage() {
 
   /*
   ###################################################################
-  ## -- CORE FETCH FUNCTIONS --                                   ##
+  ## -- CORE FETCH + UPDATE FUNCTIONS --                                   ##
   ###################################################################
   */
 
-  // Simulate fetching hazards
   const fetchHazards = async (region: Region): Promise<Hazard[]> => {
     try {
       const now = new Date();
-      const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000); // 3 days ago in milliseconds
+      const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
       const hazardsQuery = query(
         collection(db, 'hazards'),
-        where('timestamp', '>=', threeDaysAgo), // Filter for hazards within the last 3 days
-        where('downvotes', '<=', 5) // Filter for hazards with 5 or fewer downvotes
+        where('timestamp', '>=', threeDaysAgo),
+        where('downvotes', '<=', 5)
       );
       const querySnapshot = await getDocs(hazardsQuery);
       const hazardList: Hazard[] = [];
 
-      // Log the number of documents and the actual data
+      // Log to verify the number of hazards returning is correct from firestore
       console.log(`Fetched ${querySnapshot.size} hazards from Firestore`);
 
       // Iterate through each document and log its data
@@ -164,14 +165,13 @@ export default function SearchPage() {
   };
 
   // Fetch address suggestions from Geoapify API
-  // Note: This function is debounced to limit API calls while typing
   const fetchAddressSuggestions = async (query: string): Promise<string[]> => {
     try {
       const response = await fetch(
         `https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(query)}&limit=5&filter=countrycode:au&format=json&apiKey=${GEOAPIFY_API_KEY}`
       );
       const data = await response.json();
-  
+
       if (data.results && data.results.length > 0) {
         return data.results.map((result: any) => result.formatted);
       } else {
@@ -182,7 +182,7 @@ export default function SearchPage() {
       return [];
     }
   };
-
+  // Debounce the fetchAddressSuggestions function to limit API calls
   const debouncedFetchSuggestions = useCallback(
     debounce(async (query: string) => {
       const fetchedSuggestions = await fetchAddressSuggestions(query);
@@ -190,14 +190,14 @@ export default function SearchPage() {
     }, 300),
     []
   );
-
+    // Geocode address to get coordinates
   const geocodeAddress = async (address: string): Promise<Region | null> => {
     try {
       const response = await fetch(
         `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(address)}&filter=countrycode:au&apiKey=${GEOAPIFY_API_KEY}`
       );
       const data = await response.json();
-  
+
       if (data.features && data.features.length > 0) {
         const { lat, lon } = data.features[0].properties;
         return {
@@ -280,13 +280,14 @@ export default function SearchPage() {
     }
   }, []);
 
+    // Debounce the updateHazards function to limit API calls
   const debouncedUpdateHazards = useCallback(
     debounce((region: Region) => {
       updateHazards(region);
     }, 10000), // 10000ms debounce time
     [updateHazards]
   );
-
+  // Handle map region change
   useFocusEffect(
     useCallback(() => {
       const loadHazards = async () => {
@@ -300,6 +301,7 @@ export default function SearchPage() {
     }, [])
   );
 
+  // Color spec for hazard ratings
   const getColorRating = (rating: string) => {
     switch (rating){
       case 'Minor':
@@ -318,7 +320,7 @@ export default function SearchPage() {
   const getHazardIcon = (type: string, rating: string) => {
     const color = getColorRating(rating);
     const iconProps = { size: 30, color};
-
+    // Set icon size and color based on rating
     switch (type.toLowerCase()){
       case 'fallen tree':
         return <MaterialCommunityIcons name="tree" {...iconProps}/>;
@@ -348,8 +350,9 @@ export default function SearchPage() {
         }}
         style={styles.settingsButton}
         >
-        <Ionicons name="settings" size={24} color="black" />
+        <Ionicons name="settings" size={24} color={theme === 'dark' ? 'white' : 'black'} />
       </Pressable>
+        {/* Search Bar */}
     <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()} accessible={false}>
       <SafeAreaView style={styles.wrapper}>
         <View style={styles.titleContainer}>
@@ -370,7 +373,7 @@ export default function SearchPage() {
             setSearchQuery('');
             setSuggestions([]); // Clear suggestions when clearing the input
             }} style={styles.clearButton}>
-            <Ionicons name="close-circle" size={20} color="gray" />
+            <Ionicons name="close-circle" size={20} color={theme === 'dark' ? "gray" : 'black'} />
           </TouchableOpacity>
           )}
           {/* Three-dot menu */}
@@ -383,7 +386,7 @@ export default function SearchPage() {
           />
         </View>
 
-        {/* Suggestions */}
+        {/* Suggestions Dropdown list */}
         {suggestions.length > 0 && (
           <FlatList
             data={suggestions}
@@ -411,12 +414,12 @@ export default function SearchPage() {
               debouncedUpdateHazards(region); // <-- Fetch hazards when the map stops moving
             }}
           >
+            {/* User location marker */}
             {hazards.map((hazard) => (
               <Marker
                 key={hazard.id}
                 coordinate={{ latitude: hazard.latitude, longitude: hazard.longitude }}
                 title={hazard.type}
-                //description={hazard.description}
                 onPress={() => {
                   console.log('Navigating to viewHazard with ID:', hazard.id);
                   router.push({ pathname: '/viewHazard', params: { hazardId: hazard.id } });
@@ -436,10 +439,10 @@ export default function SearchPage() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (theme: 'light' | 'dark') => StyleSheet.create({
   wrapper: { flex: 1 },
   mapContainer: { flex: 1 },
-  map: { width: '100%', height: '100%', padding: 5},
+  map: { width: '100%', height: '100%', padding: 5 },
   searchBarContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -447,7 +450,7 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     padding: 10,
     borderRadius: 8,
-    backgroundColor: 'white',
+    backgroundColor: theme === 'dark' ? '#1E1E1E' : 'white',
     shadowColor: '#000',
     shadowOpacity: 0.2,
     shadowRadius: 4,
@@ -457,7 +460,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 8,
     fontSize: 16,
-    color: 'black',
+    color: theme === 'dark' ? 'white' : 'black',
   },
   menuIcon: {
     marginLeft: 10,
@@ -465,12 +468,12 @@ const styles = StyleSheet.create({
   suggestionItem: {
     padding: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
-    backgroundColor: 'white',
+    borderBottomColor: theme === 'dark' ? '#444' : '#ccc',
+    backgroundColor: theme === 'dark' ? '#2a2a2a' : 'white',
   },
   suggestionText: {
     fontSize: 16,
-    color: 'black',
+    color: theme === 'dark' ? 'white' : 'black',
   },
   loadingIndicator: {
     position: 'absolute',
@@ -485,11 +488,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: 'black',
+    color: theme === 'dark' ? 'white' : 'black',
   },
   pageContainer: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: theme === 'dark' ? '#121212' : 'white',
   },
   settingsButton: {
     position: 'absolute',
@@ -503,6 +506,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
   },
   robotoFont: {
-      fontFamily: 'RobotoRegular', // Single line for font application
+    fontFamily: 'RobotoRegular',
   },
 });

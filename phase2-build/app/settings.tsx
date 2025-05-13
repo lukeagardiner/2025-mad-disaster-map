@@ -94,12 +94,16 @@ export default function Settings() {
       <Stack.Screen
         options={{
           headerBackTitle: "Back",
+          headerTintColor: theme === 'dark' ? '#fff' : '#333',
           headerTitle: "Disaster Map",
+          headerStyle: {
+            backgroundColor: theme === 'dark' ? '#121212' : '#FFFFFF',
+          },
           headerTitleStyle: {
             fontSize: 24,
             fontWeight: 'bold',
             fontFamily: 'Roboto',
-            color: 'black',
+            color: theme === 'dark' ? '#fff' : '#333',
           },
         }}
       />
@@ -135,32 +139,38 @@ export default function Settings() {
         {/* About Content Section */}
         {isAboutVisible && (
           <View style={[
-              styles.aboutContent,
-              {backgroundColor: theme === 'dark' ? '#1E1E1E' : '#FFFFFF',
+            styles.aboutContent,
+            {backgroundColor: theme === 'dark' ? '#1E1E1E' : '#FFFFFF',
               borderColor: theme === 'dark' ? '#333' : '#ddd',
-              }
+            }
           ]}>
-            <Text style={[styles.aboutText, styles.robotoFont, { color: theme === 'dark' ? '#fff' : '#333' }]}>
+            <Text style={[styles.aboutText, styles.robotoFont, { color: theme === 'dark' ? '#fff' : '#333' }]}> {/* Toggles font color for  dark mode */}
               Disaster Map is a mobile application designed to provide real-time disaster information and assistance. Developed by the Group 2 team (Luke and Richard).
             </Text>
-            <Text style={[styles.aboutText, styles.robotoFont]}>
+            <Text style={[styles.aboutText, styles.robotoFont, { color: theme === 'dark' ? '#fff' : '#333' }]}>
               Affiliated Government Agencies: Anyone who wants to help with disaster management and response.
             </Text>
           </View>
         )}
 
         <TouchableOpacity style={styles.aboutButton} onPress={toggleTerms}>
-            <Text style={styles.aboutButtonText}>Terms / Agreements</Text>
+          <Text style={styles.aboutButtonText}>Terms / Agreements</Text>
         </TouchableOpacity>
+        {/* Terms / Agreements Content Section */}
         {isTermVisible && (
-            <View style={styles.aboutContent}>
-                <Text style={[styles.aboutText, styles.robotoFont]}>
-                    This section would outline the terms set out by the developers in a production environment.
-                </Text>
-                <Text style={[styles.aboutText, styles.robotoFont]}>
-                    This section would outline the agreements set out by the developers in a production environment.
-                </Text>
-            </View>
+          <View style={[
+            styles.aboutContent,
+            {backgroundColor: theme === 'dark' ? '#1E1E1E' : '#FFFFFF',
+            borderColor: theme === 'dark' ? '#333' : '#ddd',
+            }
+          ]}>
+            <Text style={[styles.aboutText, styles.robotoFont, { color: theme === 'dark' ? '#fff' : '#333' }]}>
+              This section would outline the terms set out by the developers in a production environment.
+            </Text>
+            <Text style={[styles.aboutText, styles.robotoFont, { color: theme === 'dark' ? '#fff' : '#333' }]}>
+              This section would outline the agreements set out by the developers in a production environment.
+            </Text>
+          </View>
         )}
         {/*
         <View className="flex-1 items-center justify-center bg-white dark:bg-black">
@@ -229,6 +239,6 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   robotoFont: {
-    fontFamily: 'RobotoRegular', // Single line for font application
+    fontFamily: 'RobotoRegular',
   }
 });
