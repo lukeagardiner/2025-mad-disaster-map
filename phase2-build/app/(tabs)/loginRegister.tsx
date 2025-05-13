@@ -8,6 +8,7 @@ import { useSession } from '../../SessionContext';
 import { initializeApp, FirebaseError } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword, signOut, initializeAuth } from "firebase/auth";
+import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 import { app } from '../../firebase.js'; // Import Firebase app
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
@@ -25,6 +26,7 @@ import '../../firebase.js'; // Import Firebase configuration
 import { set } from 'lodash';
 
 const {firebaseConfig} = require('../../firebase.js'); // Import Firebase configuration
+const db = getFirestore(app); // Firestore instance
 
 const INITIAL_EMAIL = ''; // Initial email state
 const INITIAL_ERROR = ''; // Initial error state
@@ -83,14 +85,39 @@ export default function LoginScreen() {
       setPword(pword); // Set password state for login
       setLoginout(true); // Set login/logout state to true
       signInWithEmailAndPassword(auth, email, pword)
-        .then((userCredential) => { // Sign in successful
+        .then(async(userCredential) => { // Sign in successful
           const user = userCredential.user; // Get user information
           console.log('User logged in:', user); // Debug: Log user information
+          // Retrieve Firestore data
+          const userDoc = doc(db, 'user', user.uid);
+          const userSnapshot = await getDoc(userDoc);
+
+          let accountType = null;
+          let active = null;
+
+          if (userSnapshot.exists()) {
+            const userData = userSnapshot.data();
+            accountType = userData.accountType || null;
+            active = userData.active || null;
+  
+            // Debug logs for Firestore fields
+            console.log('DEBUG: Firestore accountType:', accountType);
+            console.log('DEBUG: Firestore active:', active);
+  
+            if (active === 0) {
+              throw new Error('Your account is inactive. Please contact support.');
+            }
+          } else {
+            console.log('No Firestore document found for this user.');
+          }
+          
           // push this to session to update object
           updateSession ({
             type: 'authenticated',
             sessionStartTime: new Date().toISOString(),
             expiry: new Date(Date.now() + 3600 * 1000).toISOString(), // 1 hour expiry
+            accountType,
+            active,
           });
           setLoginout(true);
           <Text>Login successful</Text>; // Display success message
@@ -117,18 +144,29 @@ export default function LoginScreen() {
         const user = userCredential.user
         console.log('User creation successful: ', user);
 
+        // Add user to Firestore
+        const userDoc = doc(db, 'user', user.uid);
+        const userData = {
+          accountType: 1,
+          active: 1,
+          //createdAt: new Date().toISOString(),
+        };
+        await setDoc(userDoc, userData);
+
+        console.log('DEBUG: User added to Firestore with data:', userData);
+
         // Need to also set this in the session
         updateSession({
           type: 'authenticated',
           sessionStartTime: new Date().toISOString(),
           expiry: new Date(Date.now() + 3600 * 1000).toISOString(), //  Sets expiry for 1 hour into the future
+          accountType: userData.accountType,
+          active: userData.active,
         });
 
         // Display success popup
         setSignup(true);
 
-        // Re-route to main application page (index.tsx)
-        // router.push('/(tabs)'); // this is now delayed
       }
       catch (error) {
         // Firebase object/app specific errors

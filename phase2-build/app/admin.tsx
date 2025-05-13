@@ -24,7 +24,7 @@ import { router } from 'expo-router';
 // add report user.... in event detail
 // add subscribe to event in event detail to receive broadcasts
 // marker on search page to show searched location
-
+// in the firestore... might just need to check the disabled property for the user too as well as the custom one
 
 // TODO - Add org accounts
 // 1. Master user for account is signed in > add individual user accounts or import user account list of existing users ... csv?

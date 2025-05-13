@@ -7,6 +7,10 @@ import { PermissionResponse } from 'expo-location';
 
 const db = getFirestore(app); // Firestore instance
 
+// TODO
+// in the firestore... might just need to check the disabled property for the user too as well as the custom one
+
+
 // Setup user session types
 type SessionType = 'authenticated' | 'unauthenticated';
 
@@ -87,11 +91,25 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
         console.error('Failed to load session from cache:', e);
       }
 
-      onAuthStateChanged(auth, (user) => {
+      onAuthStateChanged(auth, async (user) => {
         if (user) {
+          const userDoc = doc(db, 'user', user.uid);
+          const userSnapshot = await getDoc(userDoc);
+      
+          let accountType = null;
+          let active = null;
+
+          if (userSnapshot.exists()) {
+            const userData = userSnapshot.data();
+            accountType = userData.accountType || null;
+            active = userData.active || null;
+          }
+
           setSession((prev) => ({
             ...prev,
             type: 'authenticated',
+            accountType,
+            active,
             sessionStartTime: new Date().toISOString(),
             expiry: new Date(Date.now() + 3600 * 1000).toISOString(),
           }));
@@ -142,7 +160,7 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
 
       // Adding credential fetch
-      const userDoc = doc(db, 'users', userCredential.user.uid);
+      const userDoc = doc(db, 'user', userCredential.user.uid);
       const userSnapshot = await getDoc(userDoc);
 
       let accountType = null;
@@ -152,6 +170,9 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
         const userData = userSnapshot.data();
         accountType = userData.accountType || null; 
         active = userData.active || null; 
+        if (active === 0) {
+          throw new Error('Your account is inactive. Please contact support.');
+        }
       }
 
       // Build authenticated session
@@ -175,6 +196,13 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
   const signUp = async (email: string, password: string) => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+
+      const userDoc = doc(db, 'user', userCredential.user.uid);
+      await setDoc(userDoc, {
+        accountType: 1,
+        active: 1,
+      });
+
       const newSession = {
         type: 'authenticated' as SessionType, // Explicitly cast as SessionType
         sessionStartTime: new Date().toISOString(),
@@ -186,12 +214,6 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
 
       setSession((prev) => ({ ...prev, ...newSession }));
       await AsyncStorage.setItem(SESSION_KEY, JSON.stringify({ ...session, ...newSession }));
-
-      const userDoc = doc(db, 'users', userCredential.user.uid);
-      await setDoc(userDoc, {
-        accountType: 1,
-        active: 1,
-      });
 
     } catch (error) {
       console.error('Sign-up failed:', error);
