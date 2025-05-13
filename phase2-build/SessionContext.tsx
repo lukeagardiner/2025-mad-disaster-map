@@ -21,6 +21,12 @@ interface SessionData {
     latitudeDelta: number;
     longitudeDelta: number;
   } | null;
+  searchLocation: {
+    latitude: number;
+    longitude: number;
+    latitudeDelta: number;
+    longitudeDelta: number;
+  } | null;
   locationPermission?: PermissionResponse; // Store the full permission object to pass permissions to all components inside the app
   sessionStartTime: string | null;
   expiry: string | null;
@@ -46,6 +52,7 @@ const defaultSession: SessionData = {
   accountType: null, 
   active: null, 
   currentLocation: null,
+  searchLocation: null,
   locationPermission: undefined, // Default to undefined
   sessionStartTime: null,
   expiry: null,

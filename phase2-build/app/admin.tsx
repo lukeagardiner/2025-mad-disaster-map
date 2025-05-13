@@ -23,6 +23,7 @@ import { router } from 'expo-router';
 // -- active - 0 = inactive, 1 = active, 2 = suspended, 3= banned
 // add report user.... in event detail
 // add subscribe to event in event detail to receive broadcasts
+// marker on search page to show searched location
 
 
 // TODO - Add org accounts

@@ -217,41 +217,53 @@ export default function Index() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [permissionSwitch, setPermissionSwitch] = useState(false);
+  const [firstLoad, setFirstLoad] = useState(true);
 
   // Location Flow Control logic for useEffect...
   const loadLocation = useCallback(async () => {
     setLoading(true);
     setErrorMsg(null);
 
-    try {
-      //const { status } = await Location.requestForegroundPermissionsAsync();
-      //updateSession({ locationPermission: status });
-      const permissionResponse = await Location.requestForegroundPermissionsAsync();
-      updateSession({ locationPermission: permissionResponse });
+    if (firstLoad) {
+      try {
+        //const { status } = await Location.requestForegroundPermissionsAsync();
+        //updateSession({ locationPermission: status });
+        const permissionResponse = await Location.requestForegroundPermissionsAsync();
+        updateSession({ locationPermission: permissionResponse });
 
-      //if (status === 'granted') {
-      if (permissionResponse.status === 'granted') {
-        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-        const newLocation = {
-          latitude: loc.coords.latitude,
-          longitude: loc.coords.longitude,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        };
-        setLocation(newLocation);
-        updateSession({ currentLocation: newLocation });
-      } else if (permissionResponse.status === 'denied') {
-        throw new Error('Permissions denied.');
+        //if (status === 'granted') {
+        if (permissionResponse.status === 'granted') {
+          const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+          const newLocation = {
+            latitude: loc.coords.latitude,
+            longitude: loc.coords.longitude,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          };
+          setLocation(newLocation);
+          updateSession({ currentLocation: newLocation });
+        } else if (permissionResponse.status === 'denied') {
+          throw new Error('Permissions denied.');
+        }
+      } catch (error) {
+        console.error(error);
+        setErrorMsg(error instanceof Error ? error.message : 'An unknown error occurred.');
+        setLocation(DEFAULT_REGION); // Fallback to default location
+        updateSession({ currentLocation: DEFAULT_REGION });
+      } finally {
+        setLoading(false);
+        setFirstLoad(false);
       }
-    } catch (error) {
-      console.error(error);
-      setErrorMsg(error instanceof Error ? error.message : 'An unknown error occurred.');
-      setLocation(DEFAULT_REGION); // Fallback to default location
-      updateSession({ currentLocation: DEFAULT_REGION });
-    } finally {
-      setLoading(false);
     }
-  }, [updateSession]);
+    else {
+      // On subsequent loads, use session location or fallback to default
+      if (session.currentLocation) {
+        setLocation(session.currentLocation);
+      } else {
+        setLocation(DEFAULT_REGION); // Fallback to default location
+      }
+    }
+  }, [setFirstLoad, session.currentLocation, updateSession]);
 
   useEffect(() => {
     if (!session.currentLocation) {
