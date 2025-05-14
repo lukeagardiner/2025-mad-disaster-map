@@ -528,7 +528,7 @@ const getStyles = (theme: "light" | "dark") =>
       zIndex: 1,
     },
     addressInput: {
-      textAlignVertical: "left",
+      textAlignVertical: "top",
       color: theme === "dark" ? "white" : "black",
     },
     addressContainer: {
