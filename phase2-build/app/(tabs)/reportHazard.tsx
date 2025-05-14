@@ -219,10 +219,9 @@ export default function ReportHazardScreen() {
           <View style={styles.dropdownContainer}>
             <Pressable
               onPress={() => setIsDropdownOpen(!isDropdownOpen)}
-              style={styles.dropdown}
-            >
-              <Text style={styles.dropdownText}>
-                {selectedHazard || "Select a Hazard"}
+              style={styles.dropdown}>
+              <Text style={styles.dropdown}>
+                {selectedHazard || 'Select a Hazard'}
               </Text>
               <Ionicons
                 name={isDropdownOpen ? "chevron-up" : "chevron-down"}
@@ -238,11 +237,10 @@ export default function ReportHazardScreen() {
                     key={index}
                     style={{ padding: 10 }}
                     onPress={() => {
-                      setSelectedHazard(hazardRef);
-                      setIsDropdownOpen(false);
-                    }}
-                  >
-                    <Text style={styles.dropdownMenuText}>{hazardRef}</Text>
+                      setSelectedHazard(hazardRef); // Set selected hazard
+                      setIsDropdownOpen(false); // Close dropdown
+                    }}>
+                    <Text style={styles.dropdownMenu}>{hazardRef}</Text>
                   </Pressable>
                 ))}
               </View>
