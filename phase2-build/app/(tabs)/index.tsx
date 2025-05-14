@@ -381,7 +381,7 @@ export default function Index() {
         setFirstLoad(false);
       }
     }
-  }, [updateSession, updateHazards]);
+  //}, [updateSession, updateHazards]);
     else {
       // On subsequent loads, use session location or fallback to default
       if (session.currentLocation) {
