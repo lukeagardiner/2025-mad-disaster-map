@@ -164,28 +164,33 @@ export default function ReportHazardScreen() {
   };
 
   
+
+
+  
   return (
     <View style={styles.pageContainer}>
       {/* Settings Button */}
       <Pressable
-        onPress={() => router.push("/settings")}
+        onPress={() => {
+          console.log("Navigating to settings");
+          router.push("/settings");
+        }}
         style={styles.settingsButton}
       >
         <Ionicons name="settings" size={24} color={theme === "dark" ? "white" : "black"} />
       </Pressable>
-
-      {/* Main Content */}
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      {/* Dismiss keyboard when tapping outside of TextInput */}
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
         <View style={styles.titleContainer}>
           <Text style={styles.title}>Disaster Map</Text>
           <Text style={styles.text}>Report a Hazard</Text>
 
-          {/* Address Input */}
+          {/* Enter Address Input field */}
           <View style={styles.addressContainer}>
             <TextInput
               style={styles.addressInput}
               placeholder="Enter Address"
-              placeholderTextColor={theme === "dark" ? "white" : "gray"}
+              placeholderTextColor={theme === 'dark' ? 'white' : 'gray' }
               value={address}
               ref={addressRef}
               onChangeText={handleAddressChange}
@@ -193,37 +198,40 @@ export default function ReportHazardScreen() {
               maxLength={50}
             />
           </View>
-
-          {/* Address Suggestions */}
+          {/* Address Suggestions List */}
           {suggestions.length > 0 && (
             <FlatList
               data={suggestions}
               keyExtractor={(item, index) => index.toString()}
               renderItem={({ item }: { item: any }) => (
                 <Pressable
-                  onPress={() => setAddress(item.properties.formatted)}
-                  style={styles.dropdownMenu}
+                  onPress={() => {
+                    setAddress(item.properties.formatted);
+                    setSuggestions([]);
+                  }}
                 >
-                  <Text style={styles.dropdownMenuText}>{item.properties.formatted}</Text>
+                  <Text style={{ padding: 10, color: theme === 'dark' ? 'white' : 'gray' }}>
+                    {item.properties.formatted}
+                  </Text>
                 </Pressable>
               )}
-              style={styles.flatListContainer}
+              style={{ width: "90%", maxHeight: 200 }}
             />
           )}
 
-          {/* Hazard Dropdown */}
+          {/* Hazard Options dropdown list */}
           <View style={styles.dropdownContainer}>
             <Pressable
               onPress={() => setIsDropdownOpen(!isDropdownOpen)}
-              style={styles.dropdown}
-            >
-              <Text style={styles.dropdownText}>
-                {selectedHazard || "Select a Hazard"}
+              style={styles.dropdown}>
+              <Text style={styles.dropdown}>
+                {selectedHazard || 'Select a Hazard'}
               </Text>
               <Ionicons
                 name={isDropdownOpen ? "chevron-up" : "chevron-down"}
                 size={20}
-                color={theme === "dark" ? "white" : "gray"}
+                color={theme === 'dark' ? 'white' : 'gray'}
+                style={styles.dropdownArrow}
               />
             </Pressable>
             {isDropdownOpen && (
@@ -231,19 +239,24 @@ export default function ReportHazardScreen() {
                 {hazardOptions.map((hazardRef, index) => (
                   <Pressable
                     key={index}
+                    style={{ padding: 10 }}
                     onPress={() => {
-                      setSelectedHazard(hazardRef);
-                      setIsDropdownOpen(false);
-                    }}
-                  >
-                    <Text style={styles.dropdownMenuText}>{hazardRef}</Text>
+                      setSelectedHazard(hazardRef); // Set selected hazard
+                      setIsDropdownOpen(false); // Close dropdown
+                    }}>
+                    <Text style={styles.dropdownMenu}>{hazardRef}</Text>
                   </Pressable>
                 ))}
               </View>
             )}
           </View>
 
-          {/* Hazard Rating */}
+          {/* Clear button for Hazard Options */}
+          <Pressable style={styles.clearText} onPress={clearSelection}>
+            <Text style={{ color: theme === "dark" ? "#aaa" : "#d3d3d3" }}>Clear Selection</Text>
+          </Pressable>
+
+          {/* Hazard Rating dropdown list */}
           <View style={styles.dropdownContainer}>
             <Pressable
               onPress={() => setIsDropdownOpen2(!isDropdownOpen2)}
@@ -255,7 +268,8 @@ export default function ReportHazardScreen() {
               <Ionicons
                 name={isDropdownOpen2 ? "chevron-up" : "chevron-down"}
                 size={20}
-                color={theme === "dark" ? "white" : "gray"}
+                color={theme === "dark" ? "white" : "black"}
+                style={styles.dropdownArrow}
               />
             </Pressable>
             {isDropdownOpen2 && (
@@ -263,6 +277,7 @@ export default function ReportHazardScreen() {
                 {hazardSeverity.map((hazardRating, index) => (
                   <Pressable
                     key={index}
+                    style={{ padding: 10 }}
                     onPress={() => {
                       setSelectedHazardRating(hazardRating);
                       setIsDropdownOpen2(false);
@@ -275,12 +290,17 @@ export default function ReportHazardScreen() {
             )}
           </View>
 
-          {/* Description Input */}
+          {/* Clear Selection Button for Hazard Rating */}
+          <Pressable style={styles.clearText} onPress={clearRatingSelection}>
+            <Text style={{ color: theme === "dark" ? "#aaa" : "#d3d3d3" }}>Clear Selection</Text>
+          </Pressable>
+
+          {/* Description Input field */}
           <View style={styles.descriptionContainer}>
             <TextInput
               style={styles.descriptionInput}
               placeholder="Enter a description (max 256 words)"
-              placeholderTextColor={theme === "dark" ? "white" : "gray"}
+              placeholderTextColor={theme === 'dark' ? 'white' : 'gray'}
               value={description}
               ref={descriptionRef}
               onChangeText={handleDescriptionChange}
@@ -288,12 +308,12 @@ export default function ReportHazardScreen() {
               maxLength={256}
             />
             <Text style={styles.wordCount}>
-              Word Count: {description.trim().split(/\s+/).length} / {MAX_WORD_COUNT}
+              Word Count: {countWords(description)} / {MAX_WORD_COUNT}
             </Text>
           </View>
 
-          {/* Image Upload */}
           <Text style={styles.textImage}>Upload Images</Text>
+          {/* Image Upload Buttons */}
           <View style={styles.imageButtonsContainer}>
             <Pressable style={styles.imageButton} onPress={pickImage}>
               <Text style={styles.imageButtonText}>Image from Gallery</Text>
@@ -303,154 +323,238 @@ export default function ReportHazardScreen() {
             </Pressable>
           </View>
 
-          {/* Uploaded Images */}
+          {/* Display uploaded images with delete option */}
           {images.length > 0 && (
-            <FlatList
-              data={images}
-              horizontal
-              keyExtractor={(item, index) => index.toString()}
-              renderItem={({ item, index }) => (
-                <View style={styles.imageItem}>
-                  <Image source={{ uri: item }} style={styles.pagerImage} />
-                  <Pressable
-                    style={styles.deleteButton}
-                    onPress={() => handleDeleteImage(index)}
-                  >
-                    <Ionicons name="close-circle" size={24} color="red" />
-                  </Pressable>
-                </View>
-              )}
-            />
+            <View style={styles.flatListContainer}>
+              <FlatList
+                data={images}
+                horizontal
+                keyExtractor={(item, index) => index.toString()}
+                renderItem={({ item, index }) => (
+                  <View style={styles.imageItem}>
+                    <Image source={{ uri: item }} style={styles.pagerImage} />
+                    <Pressable
+                      style={styles.deleteButton}
+                      onPress={() => handleDeleteImage(index)}
+                    >
+                      <Ionicons name="close-circle" size={24} color="red" />
+                    </Pressable>
+                  </View>
+                )}
+                showsHorizontalScrollIndicator={true}
+              />
+            </View>
           )}
-
           {/* Submit Button */}
-          <Pressable style={styles.submitButton}>
+          <Pressable
+            style={styles.submitButton}
+            onPress={async () => {
+              if (!selectedHazard || !selectedHazardRating || !description || !address) {
+                alert("Please fill out all fields.");
+                return;
+              }
+              alert("Hazard is being processed");
+              const coords = await geocodeAddress(address);
+              if (!coords) {
+                alert("Invalid address. Please try again.");
+                return;
+              }
+              try {
+                await addDoc(collection(db, "hazards"), {
+                  hazard: selectedHazard,
+                  rating: selectedHazardRating,
+                  description: description,
+                  images: images,
+                  location: {
+                    latitude: coords.lat,
+                    longitude: coords.lon,
+                  },
+                  upvotes: 0,
+                  downvotes: 0,
+                  timestamp: new Date(),
+                });
+                alert("Hazard reported successfully!");
+              } catch (error) {
+                console.error("Error adding document: ", error);
+                alert("Error reporting hazard. Please try again.");
+              }
+              // Reset state after submission
+              setSelectedHazard("");
+              setSelectedHazardRating("");
+              setDescription("");
+              setAddress("");
+              setImages([]);
+            }}
+          >
             <Text style={styles.submitButtonText}>Submit Hazard</Text>
           </Pressable>
         </View>
       </TouchableWithoutFeedback>
     </View>
   );
-
 }
-
-
 
 const getStyles = (theme: "light" | "dark") =>
   StyleSheet.create({
     pageContainer: {
       flex: 1,
       backgroundColor: theme === "dark" ? "#121212" : "white",
-    } as ViewStyle,
-
+    },
     titleContainer: {
+      padding: 10,
       alignItems: "center",
       marginTop: 20,
-    } as ViewStyle,
-
-    title: {
-      fontSize: 24,
-      fontWeight: "bold",
-      color: theme === "dark" ? "white" : "black",
-    } as TextStyle,
-
-    text: {
-      fontSize: 20,
-      marginTop: 10,
-      color: theme === "dark" ? "white" : "black",
-    } as TextStyle,
-
+      flex: 1,
+      position: "relative",
+    },
     settingsButton: {
       position: "absolute",
       top: 25,
       left: 20,
+      borderRadius: 10,
       padding: 10,
-    } as ViewStyle,
-
+      zIndex: 1,
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: "bold",
+      color: theme === "dark" ? "white" : "black",
+    },
+    text: {
+      fontSize: 20,
+      marginTop: 35,
+      color: theme === "dark" ? "white" : "black",
+    },
+    textImage: {
+      marginTop: 10,
+      fontSize: 14,
+      fontWeight: "600",
+      color: theme === "dark" ? "#ccc" : "#555",
+      marginBottom: 10,
+    },
+    clearText: {
+      marginTop: 8,
+      fontSize: 14,
+    },
     dropdownContainer: {
       width: "90%",
       marginTop: 20,
-    } as ViewStyle,
-
+      borderWidth: 1,
+      borderColor: theme === "dark" ? "#444" : "#ccc",
+      borderRadius: 8,
+      backgroundColor: theme === "dark" ? "#222" : "#f9f9f9",
+    },
     dropdown: {
       flexDirection: "row",
+      justifyContent: "space-between",
       padding: 10,
-      borderWidth: 1,
+      borderColor: theme === "dark" ? "#444" : "#ccc",
       backgroundColor: theme === "dark" ? "#222" : "#f9f9f9",
-    } as ViewStyle,
-
-    dropdownText: {
-      color: theme === "dark" ? "white" : "gray",
-    } as TextStyle,
-
+      borderRadius: 8,
+    },
+    dropdownArrow: {
+      marginLeft: 10,
+    },
     dropdownMenu: {
-      padding: 10,
-    } as ViewStyle,
-
+      borderRadius: 8,
+      borderColor: theme === "dark" ? "#444" : "#ccc",
+    },
+    dropdownText: {
+      color: theme === "dark" ? "white" : "black",
+    },
     dropdownMenuText: {
       color: theme === "dark" ? "#eee" : "#000",
-    } as TextStyle,
-
+    },
+    descriptionContainer: {
+      width: "90%",
+      marginTop: 20,
+    },
+    descriptionInput: {
+      height: 150,
+      textAlignVertical: "top",
+      borderWidth: 1,
+      borderColor: theme === "dark" ? "#444" : "#ccc",
+      borderRadius: 8,
+      padding: 10,
+      backgroundColor: theme === "dark" ? "#1a1a1a" : "#f9f9f9",
+      fontSize: 16,
+      color: theme === "dark" ? "white" : "black",
+    },
+    wordCount: {
+      marginTop: 5,
+      fontSize: 14,
+      color: theme === "dark" ? "#aaa" : "#666",
+      textAlign: "right",
+    },
+    imageButtonsContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginTop: 10,
+      marginBottom: 30,
+    },
+    imageButton: {
+      paddingVertical: 10,
+      paddingHorizontal: 30,
+      borderRadius: 5,
+      marginHorizontal: 5,
+      backgroundColor: "#3385FF",
+      borderWidth: 1,
+    },
+    imageButtonText: {
+      color: "#fff",
+      fontSize: 16,
+      fontWeight: "bold",
+    },
+    flatListContainer: {
+      marginTop: 20,
+      paddingHorizontal: 10,
+    },
+    imageItem: {
+      marginRight: 10,
+      position: "relative",
+    },
+    pagerImage: {
+      width: 200,
+      height: 200,
+      borderRadius: 10,
+      resizeMode: "cover",
+    },
+    deleteButton: {
+      position: "absolute",
+      top: 5,
+      right: 5,
+      backgroundColor: "rgba(255, 255, 255, 0.7)",
+      borderRadius: 12,
+      zIndex: 1,
+    },
+    addressInput: {
+      textAlignVertical: "left",
+      color: theme === "dark" ? "white" : "black",
+    },
     addressContainer: {
       width: "90%",
       borderWidth: 1,
-    } as ViewStyle,
-
-    addressInput: {
-      color: theme === "dark" ? "white" : "black",
-    } as TextStyle,
-
-    descriptionContainer: {
-      width: "90%",
-    } as ViewStyle,
-
-    descriptionInput: {
-      height: 100,
+      borderColor: theme === "dark" ? "#444" : "#ccc",
+      borderRadius: 8,
+      padding: 5,
+      marginTop: 15,
+      marginBottom: 5,
       backgroundColor: theme === "dark" ? "#1a1a1a" : "#f9f9f9",
-    } as TextStyle,
-
-    wordCount: {
-      textAlign: "right",
-    } as TextStyle,
-
-    textImage: {
-      marginTop: 20,
-    } as TextStyle,
-
-    imageButtonsContainer: {
-      flexDirection: "row",
-    } as ViewStyle,
-
-    imageButton: {
-      padding: 10,
-    } as ViewStyle,
-
-    imageButtonText: {
-      color: "white",
-    } as TextStyle,
-
-    imageItem: {
-      margin: 10,
-    } as ViewStyle,
-
-    pagerImage: {
-      width: 100,
-      height: 100,
-    } as ImageStyle,
-
-    deleteButton: {
-      position: "absolute",
-    } as ViewStyle,
-
-    flatListContainer: {
-      marginTop: 10,
-    } as ViewStyle,
-
+    },
     submitButton: {
+      backgroundColor: "#3385FF",
+      paddingVertical: 10,
+      paddingHorizontal: 20,
+      borderRadius: 5,
       marginTop: 20,
-    } as ViewStyle,
-
+      alignItems: "center",
+      zIndex: 10,
+      position: "relative",
+    },
     submitButtonText: {
-      color: "white",
-    } as TextStyle,
-});
+      color: "#fff",
+      fontSize: 16,
+      fontWeight: "600",
+    },
+  });
+
