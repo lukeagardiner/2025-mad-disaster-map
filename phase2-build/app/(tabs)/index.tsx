@@ -381,7 +381,6 @@ export default function Index() {
         setFirstLoad(false);
       }
     }
-  }, [updateSession, updateHazards]);
     else {
       // On subsequent loads, use session location or fallback to default
       if (session.currentLocation) {
@@ -390,7 +389,7 @@ export default function Index() {
         setLocation(DEFAULT_REGION); // Fallback to default location
       }
     }
-  }, [setFirstLoad, session.currentLocation, updateSession]);
+  }, [setFirstLoad, session.currentLocation, updateSession, updateHazards]);
 
   useEffect(() => {
     if (!session.currentLocation) {

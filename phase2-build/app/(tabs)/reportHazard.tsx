@@ -1,5 +1,5 @@
-import { View, Text, StyleSheet, Pressable, GestureResponderEvent, TextInput, Keyboard, } from "react-native";
-import { TouchableWithoutFeedback, Image, Dimensions, FlatList, } from "react-native";
+import { View, Text, StyleSheet, Pressable, GestureResponderEvent, TextInput, Keyboard, TouchableWithoutFeedback, Image, 
+  Dimensions, FlatList, TextStyle, ImageStyle, ViewStyle} from "react-native";
 import React, { useEffect, useRef, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
@@ -163,6 +163,10 @@ export default function ReportHazardScreen() {
     }
   };
 
+  
+
+
+  
   return (
     <View style={styles.pageContainer}>
       {/* Settings Button */}
@@ -524,7 +528,7 @@ const getStyles = (theme: "light" | "dark") =>
       zIndex: 1,
     },
     addressInput: {
-      textAlignVertical: "left",
+      textAlignVertical: "top",
       color: theme === "dark" ? "white" : "black",
     },
     addressContainer: {
@@ -553,3 +557,4 @@ const getStyles = (theme: "light" | "dark") =>
       fontWeight: "600",
     },
   });
+

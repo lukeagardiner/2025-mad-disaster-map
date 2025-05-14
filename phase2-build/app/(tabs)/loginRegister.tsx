@@ -12,9 +12,7 @@ import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword, si
 import { app } from '../../firebase.js';
 import '../../firebase.js'; // Import Firebase configuration
 import { set } from 'lodash';
-import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword, signOut, initializeAuth } from "firebase/auth";
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
-import { app } from '../../firebase.js'; // Import Firebase app
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
