@@ -48,3 +48,10 @@ Join our community of developers creating universal apps.
 
 - [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
 - [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+
+
+## These packages need to be addressed in packages.json and should not be in the ignore section... just trying to get the first build happy
+
+- "react-native-image-viewing",
+- "react-native-modal-dropdown",
+- "react-native-snap-carousel",

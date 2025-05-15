@@ -29,9 +29,9 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
+# local env files #temporarily removed for build
 .env*.local
-firebase.js
+firebase.js 
 
 # typescript
 *.tsbuildinfo
