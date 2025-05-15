@@ -8,9 +8,12 @@ import { getFirestore, collection, addDoc } from "firebase/firestore";
 import { initializeApp } from "firebase/app";
 import { firebaseConfig } from "@/firebase";
 import { useTheme } from "@/theme/ThemeContext"; // Access theme controls
+import { getAuth, onAuthStateChanged } from "firebase/auth"; // Import Firebase Auth
 
-const app = initializeApp(firebaseConfig); // Initialize Firebase app
-const db = getFirestore(); // Initialize Firestore instance once
+// Initialize Firebase app
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(); // Initialize Firestore instance
+const auth = getAuth(app); // Initialize Firebase Auth
 
 export default function ReportHazardScreen() {
   const { theme } = useTheme(); // Get current theme from ThemeContext
@@ -30,6 +33,15 @@ export default function ReportHazardScreen() {
   const MAX_WORD_COUNT = 256; // Maximum word count for the description
   const MAX_IMAGES = 3; // Maximum number of images allowed
   const [suggestions, setSuggestions] = useState([]); // State to store address suggestions
+  const [user, setUser] = useState<any>(null); // State to track authenticated user
+
+  // Monitor authentication state
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser); // Update user state when auth state changes
+    });
+    return () => unsubscribe(); // Cleanup subscription on unmount
+  }, []);
 
   // Reset dropdown selection to default value for hazard types
   function clearSelection(event: GestureResponderEvent): void {
@@ -168,6 +180,55 @@ export default function ReportHazardScreen() {
   ## -- PRESENTATION / UI --                                    ##
   ###################################################################
   */
+  // Handle hazard submission with authentication check
+  const handleSubmit = async () => {
+    // Check if user is authenticated
+    if (!user) {
+      alert("You need to log in to submit a hazard report.");
+      return;
+    }
+
+    // Validate form fields
+    if (!selectedHazard || !selectedHazardRating || !description || !address) {
+      alert("Please fill out all fields.");
+      return;
+    }
+
+    alert("Hazard is being processed");
+    const coords = await geocodeAddress(address);
+    if (!coords) {
+      alert("Invalid address. Please try again.");
+      return;
+    }
+
+    try {
+      await addDoc(collection(db, "hazards"), {
+        hazard: selectedHazard,
+        rating: selectedHazardRating,
+        description: description,
+        images: images,
+        location: {
+          latitude: coords.lat,
+          longitude: coords.lon,
+        },
+        upvotes: 0,
+        downvotes: 0,
+        timestamp: new Date(),
+        userId: user.uid, // Optionally store the user's ID with the hazard
+      });
+      alert("Hazard reported successfully!");
+      // Reset state after submission
+      setSelectedHazard("");
+      setSelectedHazardRating("");
+      setDescription("");
+      setAddress("");
+      setImages([]);
+    } catch (error) {
+      console.error("Error adding document: ", error);
+      alert("Error reporting hazard. Please try again.");
+    }
+  };
+
   return (
     <View style={styles.pageContainer}>
       {/* Settings Button */}
@@ -231,7 +292,7 @@ export default function ReportHazardScreen() {
               <Ionicons
                 name={isDropdownOpen ? "chevron-up" : "chevron-down"}
                 size={20}
-                color={theme === 'dark' ? 'white' : 'gray'}
+                color={theme === 'dark' ? 'white' : 'black'}
                 style={styles.dropdownArrow}
               />
             </Pressable>
@@ -349,43 +410,7 @@ export default function ReportHazardScreen() {
           {/* Submit Button */}
           <Pressable
             style={styles.submitButton}
-            onPress={async () => {
-              if (!selectedHazard || !selectedHazardRating || !description || !address) {
-                alert("Please fill out all fields.");
-                return;
-              }
-              alert("Hazard is being processed");
-              const coords = await geocodeAddress(address);
-              if (!coords) {
-                alert("Invalid address. Please try again.");
-                return;
-              }
-              try {
-                await addDoc(collection(db, "hazards"), {
-                  hazard: selectedHazard,
-                  rating: selectedHazardRating,
-                  description: description,
-                  images: images,
-                  location: {
-                    latitude: coords.lat,
-                    longitude: coords.lon,
-                  },
-                  upvotes: 0,
-                  downvotes: 0,
-                  timestamp: new Date(),
-                });
-                alert("Hazard reported successfully!");
-              } catch (error) {
-                console.error("Error adding document: ", error);
-                alert("Error reporting hazard. Please try again.");
-              }
-              // Reset state after submission
-              setSelectedHazard("");
-              setSelectedHazardRating("");
-              setDescription("");
-              setAddress("");
-              setImages([]);
-            }}
+            onPress={handleSubmit} // Use the new handleSubmit function
           >
             <Text style={styles.submitButtonText}>Submit Hazard</Text>
           </Pressable>
@@ -448,10 +473,11 @@ const getStyles = (theme: "light" | "dark") =>
     dropdown: {
       flexDirection: "row",
       justifyContent: "space-between",
-      padding: 10,
+      padding: 5,
       borderColor: theme === "dark" ? "#444" : "#ccc",
       backgroundColor: theme === "dark" ? "#222" : "#f9f9f9",
       borderRadius: 8,
+      color: theme === "dark" ? "white" : "gray",
     },
     dropdownArrow: {
       marginLeft: 10,
@@ -461,7 +487,8 @@ const getStyles = (theme: "light" | "dark") =>
       borderColor: theme === "dark" ? "#444" : "#ccc",
     },
     dropdownText: {
-      color: theme === "dark" ? "white" : "black",
+      padding: 5,
+      color: theme === "dark" ? "white" : "gray",
     },
     dropdownMenuText: {
       color: theme === "dark" ? "#eee" : "#000",
@@ -558,4 +585,3 @@ const getStyles = (theme: "light" | "dark") =>
       fontWeight: "600",
     },
   });
-
