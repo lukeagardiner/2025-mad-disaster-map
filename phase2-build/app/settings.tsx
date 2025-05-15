@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
-import { View, Text, Switch, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, Switch, StyleSheet, TouchableOpacity, ScrollView, TextInput, 
+  Alert, ActivityIndicator } from 'react-native';
 import { useTheme } from '@/theme/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage'; // For cache file handling when implemented
-
-// the original settings file has been backed up as settings2.tsx as I'm messing about with this one with the NativeWind theming
-
+import { useSession } from '../SessionContext';
+import { doc, updateDoc, getDoc, getFirestore } from 'firebase/firestore';
+import { app } from '../firebase'; 
 
 // TODO
 // - get current coordinates button
@@ -15,7 +16,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage'; // For cac
 // - user terms / agreements visible like about
 // - include application VERSION in about
 // - include application warnings keys / explanation in ABOUT
-// - logout button
 // - generate local list of known events even if map can't load
 // - delete account / delete identifiable data
 // - SOME OF THESE CAN GO TO ADMIN PAGE IN THE FUTURE
@@ -33,14 +33,21 @@ type UserSettings = {
 
 /*
 ###################################################################
-## -- SCREEN STRUCTURE AND DATA SETUP --                         ##
+## -- PAGE AND EVENT LOGIC --                                    ##
 ###################################################################
 */
 export default function Settings() {
-  const { theme, setTheme } = useTheme(); // addedV2
-  const [isAboutVisible, setIsAboutVisible] = useState(false); // existing
-  const [isTermVisible, setIsTermVisible] = useState(false); // existing
+  const { theme, setTheme } = useTheme(); 
+  const { session } = useSession();
+  const db = getFirestore(app);
+  const [isAboutVisible, setIsAboutVisible] = useState(false); 
+  const [isTermVisible, setIsTermVisible] = useState(false); 
   const [isDark, setIsDark] = useState(theme === 'dark'); // Stores local dark mode state
+  const [showVerificationPopup, setShowVerificationPopup] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [isVerificationVisible, setIsVerificationVisible] = useState(false); 
+  const [isProcessing, setIsProcessing] = useState(false); // to track change activity
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false); // also in reportHazard
 
   // Attempt to load settings from cache on mount
   useEffect(() => {
@@ -85,9 +92,60 @@ export default function Settings() {
     setTheme(value ? 'dark' : 'light');
     handleSaveSettings(value); // call the save settings steps
   }
+  
+  // Mechanism for our user verificaion probs
+  const handleBecomeVerified = () => {
+    setShowVerificationPopup(true);
+  };
 
-  // Switch value is true if theme is 'dark' // addedV2
-  //const isDark = theme === "dark"; // addedV2 // and now parked / moved lower actually
+  // This handles popup action
+  const handleDismissVerificationPopup = () => {
+    setShowVerificationPopup(false);
+    setIsVerificationVisible(true); // Show the verification code input field
+  };
+
+  // And this is the submission logic based on... admin.tsx stuff
+  const handleVerificationSubmit = async () => {
+    if (verificationCode === '1') {
+      try {
+        if (!session.uid) {
+          // Errors here if we don't make sure userId is not empty
+          throw new Error('Could not populate User ID from session.');
+        }
+
+        // Should upgrade the account
+        setIsProcessing(true);
+        const userDoc = doc(db, 'user', session.uid); 
+        await updateDoc(userDoc, { accountType: 3 }); 
+
+        // confirm the change from firebase
+        const updatedDoc = await getDoc(userDoc);
+        const updatedData = updatedDoc.data();
+        if (updatedData?.accountType === 3) {
+          setShowSuccessPopup(true);
+        }
+        else {
+          throw new Error('Failed to update account type in Firestore.');
+        }
+        //Alert.alert('Success', 'Your account is now verified!');
+        //setIsVerificationVisible(false); // Hides the verification input
+      } catch (error) {
+        console.error('Failed to update account type:', error);
+        Alert.alert('Error', 'Failed to verify account. Please try again.');
+      }
+      finally {
+        setIsProcessing(false);
+      }
+    } else {
+      Alert.alert('Error', 'Invalid verification code. Please type "1".');
+    }
+  };
+  
+  const handleSuccessPopupDismiss = () => {
+    setShowSuccessPopup(false); 
+    setIsVerificationVisible(false); 
+  };
+
 
   return (
     <>
@@ -172,19 +230,72 @@ export default function Settings() {
             </Text>
           </View>
         )}
-        {/*
-        <View className="flex-1 items-center justify-center bg-white dark:bg-black">
-          <Text className="text-lg mb-4 text-black dark:text-white">
-            Dark Mode: {isDark ? "On" : "Off"}
-          </Text>
-          <Switch
-            value={isDark}
-            onValueChange={(value) => setTheme(value ? "dark" : "light")}
-            thumbColor={isDark ? "#222" : "#eee"}
-            trackColor={{ false: "#ccc", true: "#444" }}
-          />
-        </View>
-        */}
+        {/* Become Verified User Button -- must protect user from being 0*/}
+        {session.type === 'authenticated' && (session.accountType ?? 0) < 4 && (
+          <TouchableOpacity
+            style={[styles.aboutButton, { backgroundColor: '#4682B4' }]}
+            onPress={handleBecomeVerified}
+          >
+            <Text style={styles.aboutButtonText}>Become Verified User</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Verification Pop-Up */}
+        {showVerificationPopup && (
+          <View style={styles.popupOverlay}>
+            <View style={styles.popupContainer}>
+              <Text style={styles.popupText}>You will receive an email with instructions on how to apply for account verification.</Text>
+              <TouchableOpacity
+                style={styles.buttonPopupClose}
+                onPress={handleDismissVerificationPopup}
+              >
+                <Text style={styles.popupCloseText}>Dismiss</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* Verification Code Input */}
+        {isVerificationVisible && (
+          <View style={styles.verificationContainer}>
+            <TextInput
+              style={styles.verificationInput}
+              placeholder="Verification Code - Type '1'"
+              placeholderTextColor="#888"
+              value={verificationCode}
+              onChangeText={setVerificationCode}
+            />
+            <TouchableOpacity
+              style={[styles.aboutButton, { backgroundColor: '#007BFF' }]}
+              onPress={handleVerificationSubmit}
+            >
+              <Text style={styles.aboutButtonText}>Submit</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        {/* Processing Popup */}
+        {isProcessing && (
+          <View style={styles.popupOverlay}>
+            <View style={styles.popupContainer}>
+              <ActivityIndicator size="large" color="#007BFF" />
+              <Text style={styles.popupText}>Making those changes...</Text>
+            </View>
+          </View>
+        )}
+        {/* Success Popup */}
+        {showSuccessPopup && (
+          <View style={styles.popupOverlay}>
+            <View style={styles.popupContainer}>
+              <Text style={styles.popupText}>Change successful!</Text>
+              <TouchableOpacity
+                style={styles.buttonPopupClose}
+                onPress={handleSuccessPopupDismiss}
+              >
+                <Text style={styles.popupCloseText}>OK</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
       </ScrollView>
     </>
   );
@@ -237,6 +348,60 @@ const styles = StyleSheet.create({
     color: '#333',
     textAlign: 'center',
     marginBottom: 5,
+  },
+  popupOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  popupContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  popupText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  buttonPopupClose: {
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    backgroundColor: '#3385FF',
+    borderRadius: 5,
+  },
+  popupCloseText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  verificationContainer: {
+    marginTop: 20,
+    alignItems: 'center',
+    width: '85%',
+  },
+  verificationInput: {
+    height: 40,
+    width: '100%',
+    borderColor: '#000',
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    borderRadius: 5,
+    marginBottom: 10,
   },
   robotoFont: {
     fontFamily: 'RobotoRegular',

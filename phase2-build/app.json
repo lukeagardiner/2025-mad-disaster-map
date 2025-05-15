@@ -2,6 +2,7 @@
   "expo": {
     "name": "phase2-build",
     "slug": "phase2-build",
+    "owner": "dimik",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -24,7 +25,6 @@
       "permissions": [
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.RECORD_AUDIO"
       ]
     },
@@ -65,7 +65,7 @@
         "origin": false
       },
       "eas": {
-        "projectId": "210776a6-d1fa-4f33-a5fe-fd4b850926c7"
+        "projectId": "b8897442-f5e5-4e17-9a62-32f902796b84"
       }
     }
   }
