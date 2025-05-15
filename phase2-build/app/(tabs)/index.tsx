@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { StyleSheet, View, Text, ActivityIndicator, Alert, Pressable, Switch, } from "react-native";
+import { StyleSheet, View, Text, ActivityIndicator, Alert, Pressable, Switch } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import * as Location from "expo-location";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -50,6 +50,37 @@ const DEFAULT_REGION: LocationData = {
   latitudeDelta: 0.1,
   longitudeDelta: 0.1,
 };
+
+// Dark mode map style
+const darkMapStyle = [
+  {
+    elementType: "geometry",
+    stylers: [{ color: "#212121" }],
+  },
+  {
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#757575" }],
+  },
+  {
+    elementType: "labels.text.stroke",
+    stylers: [{ color: "#212121" }],
+  },
+  {
+    featureType: "administrative",
+    elementType: "geometry",
+    stylers: [{ color: "#757575" }],
+  },
+  {
+    featureType: "road",
+    elementType: "geometry.fill",
+    stylers: [{ color: "#2c2c2c" }],
+  },
+  {
+    featureType: "water",
+    elementType: "geometry",
+    stylers: [{ color: "#000000" }],
+  },
+];
 
 /*
 ###################################################################
@@ -296,7 +327,7 @@ const getColorRating = (rating: string) => {
   }
 };
 
-const getHazardIcon = (type: string, rating: string) => {
+const getHazardIcon = (type: string, rating: string, theme: "light" | "dark") => {
   const color = getColorRating(rating);
   const iconProps = { size: 30, color };
   switch (type.toLowerCase()) {
@@ -321,6 +352,7 @@ const getHazardIcon = (type: string, rating: string) => {
 
 export default function Index() {
   const { session, updateSession } = useSession();
+  const { theme } = useTheme(); // Get current theme
   const [location, setLocation] = useState<LocationData | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -352,12 +384,9 @@ export default function Index() {
 
     if (firstLoad) {
       try {
-        //const { status } = await Location.requestForegroundPermissionsAsync();
-        //updateSession({ locationPermission: status });
         const permissionResponse = await Location.requestForegroundPermissionsAsync();
         updateSession({ locationPermission: permissionResponse });
 
-        //if (status === 'granted') {
         if (permissionResponse.status === 'granted') {
           const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
           const newLocation = {
@@ -380,8 +409,7 @@ export default function Index() {
         setLoading(false);
         setFirstLoad(false);
       }
-    }
-    else {
+    } else {
       // On subsequent loads, use session location or fallback to default
       if (session.currentLocation) {
         setLocation(session.currentLocation);
@@ -402,26 +430,30 @@ export default function Index() {
 
   if (loading) {
     return (
-      <View style={styles.wrapper}>
-        <ActivityIndicator size="large" />
+      <View style={[styles.wrapper, { backgroundColor: theme === "dark" ? "#121212" : "white" }]}>
+        <ActivityIndicator size="large" color={theme === "dark" ? "#fff" : "#000"} />
       </View>
     );
   }
 
   if (errorMsg) {
     return (
-      <View style={styles.wrapper}>
-        <Text style={{ color: "red", textAlign: "center", marginTop: 50 }}>
+      <View style={[styles.wrapper, { backgroundColor: theme === "dark" ? "#121212" : "white" }]}>
+        <Text style={[styles.errorText, { color: theme === "dark" ? "#ff5555" : "red" }]}>
           {errorMsg}
         </Text>
         <View style={styles.permissionsContainer}>
-          <Text style={{ marginBottom: 10 }}>Enable Location Permissions:</Text>
+          <Text style={{ color: theme === "dark" ? "#fff" : "#000", marginBottom: 10 }}>
+            Enable Location Permissions:
+          </Text>
           <Switch
             value={permissionSwitch}
             onValueChange={(value) => {
               setPermissionSwitch(value);
               if (value) loadLocation();
             }}
+            trackColor={{ false: "#767577", true: "#81b0ff" }}
+            thumbColor={theme === "dark" ? "#f4f3f4" : "#f5dd4b"}
           />
         </View>
       </View>
@@ -429,18 +461,20 @@ export default function Index() {
   }
 
   return (
-    <View style={styles.wrapper}>
+    <View style={[styles.wrapper, { backgroundColor: theme === "dark" ? "#121212" : "white" }]}>
       {/* Settings Button */}
       <Pressable
         onPress={() => router.push("/settings")}
         style={styles.settingsButton}
       >
-        <Ionicons name="settings" size={24} color="black" />
+        <Ionicons name="settings" size={24} color={theme === "dark" ? "white" : "black"} />
       </Pressable>
 
       {/* Main Title */}
       <View style={styles.titleContainer}>
-        <Text style={styles.title}>Disaster Map</Text>
+        <Text style={[styles.title, { color: theme === "dark" ? "white" : "black" }]}>
+          Disaster Map
+        </Text>
       </View>
 
       {/* Map */}
@@ -466,7 +500,7 @@ export default function Index() {
                   router.push({ pathname: "/viewHazard", params: { hazardId: hazard.id } });
                 }}
               >
-                {getHazardIcon(hazard.type, hazard.rating)}
+                {getHazardIcon(hazard.type, hazard.rating, theme)}
               </Marker>
             ))}
           </MapView>
@@ -476,13 +510,19 @@ export default function Index() {
       {/* Refresh Button */}
       <Pressable
         onPress={loadLocation}
-        style={styles.refreshButton}
+        style={[styles.refreshButton, { backgroundColor: theme === "dark" ? "#222" : "#f9f9f9" }]}
       >
-        <Ionicons name="compass-outline" size={20} color="black" />
+        <Ionicons name="compass-outline" size={20} color={theme === "dark" ? "white" : "black"} />
       </Pressable>
 
       {/* Loading Indicator */}
-      {loading && <ActivityIndicator style={styles.loadingIndicator} size="large" />}
+      {loading && (
+        <ActivityIndicator
+          style={styles.loadingIndicator}
+          size="large"
+          color={theme === "dark" ? "#fff" : "#000"}
+        />
+      )}
     </View>
   );
 }
@@ -496,7 +536,6 @@ export default function Index() {
 const styles = StyleSheet.create({
   wrapper: {
     flex: 1,
-    backgroundColor: "white",
   },
   titleContainer: {
     alignItems: "center",
@@ -506,7 +545,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "black",
   },
   mapContainer: {
     flex: 1,
@@ -522,24 +560,31 @@ const styles = StyleSheet.create({
     left: 20,
     padding: 10,
     zIndex: 1,
+    borderRadius: 10,
+    backgroundColor: "transparent",
   },
   refreshButton: {
     position: "absolute",
     bottom: 45,
     right: 35,
-    padding: 5,
+    padding: 10,
+    borderRadius: 25,
+    borderWidth: 1,
+    borderColor: "#444",
     zIndex: 1,
   },
   permissionsContainer: {
     alignItems: "center",
     marginTop: 20,
   },
+  errorText: {
+    textAlign: "center",
+    marginTop: 50,
+    fontSize: 16,
+  },
   loadingIndicator: {
     position: "absolute",
     top: "50%",
     left: "50%",
-  },
-  robotoFont: {
-    fontFamily: "RobotoRegular",
   },
 });
