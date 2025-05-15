@@ -3,7 +3,7 @@ import {
   StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, Alert, KeyboardAvoidingView, Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '@/theme/ThemeContext';
+import { ThemeProvider, useTheme } from '@/theme/ThemeContext';
 import { useSession } from '../SessionContext';
 import { getFirestore, collection, query, where, getDocs, doc, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { app } from '../firebase.js';
@@ -33,6 +33,11 @@ import { router } from 'expo-router';
 // 3. Process requests for verified account from settings.tsx
 
 
+/*
+###################################################################
+## -- PAGE AND EVENT LOGIC --                                    ##
+###################################################################
+*/
 const db = getFirestore(app);
 
 const LEVELS = [
@@ -103,7 +108,7 @@ export default function AdminScreen() {
     if (userLevel === 3 && targetLevel === 2) return true; // can demote 2 to 1
     return false;
   };
-  const canSuspend = (targetLevel: number) => userLevel > 1 && userLevel > targetLevel;
+  const canSuspend = (targetLevel: number) => (session.accountType ?? 0) > 1 && (session.accountType ?? 0) > targetLevel;
 
   // --- Promote/Demote/Suspend/Password Reset ---
   const handlePromote = async () => {
@@ -224,18 +229,33 @@ export default function AdminScreen() {
     setLoading(false);
   };
 
-  // --- Back/Exit Button ---
   const handleBack = () => router.back();
 
-  // --- Render ---
+  /*
+  ###################################################################
+  ## -- PRESENTATION / UI --                                    ##
+  ###################################################################
+  */
+  // Making theme elements more manageable in this class - to roll out to other classes
+  const themeColors = {
+    background: theme === 'dark' ? '#181818' : '#fff',
+    card: theme === 'dark' ? '#222' : '#f5f5f5',
+    text: theme === 'dark' ? '#fff' : '#111',
+    textSecondary: theme === 'dark' ? '#aaa' : '#555',
+    primary: '#3385FF',
+    button: '#3385FF',
+    buttonDisabled: theme === 'dark' ? '#333' : '#aaa',
+    border: theme === 'dark' ? '#444' : '#ccc',
+  };
+
   if (!sessionValid) {
     return (
-      <View style={[styles.pageContainer, { backgroundColor: theme.background }]}>
-        <Text style={[styles.title, { color: theme.text }]}>Access Denied</Text>
-        <Text style={{ color: theme.text }}>You do not have permission to view this page.</Text>
+      <View style={[styles.pageContainer, { backgroundColor: themeColors.background }]}>
+        <Text style={[styles.title, { color: themeColors.text  }]}>Access Denied</Text>
+        <Text style={{ color: themeColors.text  }}>You do not have permission to view this page.</Text>
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={theme.primary} />
-          <Text style={{ color: theme.primary, marginLeft: 8 }}>Back</Text>
+          <Ionicons name="arrow-back" size={24} color={themeColors.primary} />
+          <Text style={{ color: themeColors.primary, marginLeft: 8 }}>Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -243,26 +263,26 @@ export default function AdminScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.pageContainer, { backgroundColor: theme.background }]}
+      style={[styles.pageContainer, { backgroundColor: themeColors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       {/* Back/Exit Button */}
       <TouchableOpacity onPress={handleBack} style={styles.exitButton}>
-        <Ionicons name="arrow-back" size={28} color={theme.primary} />
+        <Ionicons name="arrow-back" size={28} color={themeColors.primary} />
       </TouchableOpacity>
 
       <ScrollView contentContainerStyle={styles.contentContainer} keyboardShouldPersistTaps="handled">
-        <Text style={[styles.title, { color: theme.text }]}>Disaster Map</Text>
-        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>User Request Queue</Text>
+        <Text style={[styles.title, { color: themeColors.text }]}>Disaster Map</Text>
+        <Text style={[styles.subtitle, { color: themeColors.textSecondary }]}>User Request Queue</Text>
 
         {/* User Request Queue */}
-        <View style={[styles.queueContainer, { backgroundColor: theme.card }]}>
+        <View style={[styles.queueContainer, { backgroundColor: themeColors.card }]}>
           {queue.length === 0 ? (
-            <Text style={{ color: theme.textSecondary, fontStyle: 'italic' }}>No open requests.</Text>
+            <Text style={{ color: themeColors.textSecondary, fontStyle: 'italic' }}>No open requests.</Text>
           ) : (
             queue.map(item => (
               <View key={item.requestId} style={styles.queueRow}>
-                <Text style={{ color: theme.text }}>{item.username} (Level {item.accountType})</Text>
+                <Text style={{ color: themeColors.text }}>{item.username} (Level {item.accountType})</Text>
                 <TouchableOpacity
                   style={styles.selectButton}
                   onPress={() => handleSelectUser(item)}
@@ -276,32 +296,32 @@ export default function AdminScreen() {
 
         {/* Email Field */}
         <View style={styles.formRow}>
-          <Text style={[styles.label, { color: theme.text }]}>Email</Text>
+          <Text style={[styles.label, { color: themeColors.text }]}>Email</Text>
           <TextInput
-            style={[styles.input, { color: theme.text, borderColor: theme.border }]}
+            style={[styles.input, { color: themeColors.text, borderColor: themeColors.border }]}
             value={selectedEmail}
             onChangeText={setSelectedEmail}
             placeholder="Enter email"
-            placeholderTextColor={theme.textSecondary}
+            placeholderTextColor={themeColors.textSecondary}
             editable={!loading}
           />
         </View>
 
         {/* Level Dropdown and Password Reset */}
         <View style={styles.formRow}>
-          <Text style={[styles.label, { color: theme.text }]}>Level</Text>
+          <Text style={[styles.label, { color: themeColors.text }]}>Level</Text>
           <View style={styles.levelRow}>
             <TextInput
-              style={[styles.inputSmall, { color: theme.text, borderColor: theme.border }]}
+              style={[styles.inputSmall, { color: themeColors.text, borderColor: themeColors.border }]}
               value={selectedLevel ? String(selectedLevel) : ''}
               keyboardType="number-pad"
               onChangeText={txt => setSelectedLevel(Number(txt))}
               placeholder="Level"
-              placeholderTextColor={theme.textSecondary}
+              placeholderTextColor={themeColors.textSecondary}
               editable={!loading}
             />
             <TouchableOpacity
-              style={[styles.button, { backgroundColor: theme.button }]}
+              style={[styles.button, { backgroundColor: themeColors.button }]}
               onPress={handlePasswordReset}
               disabled={loading}
             >
@@ -315,7 +335,7 @@ export default function AdminScreen() {
           <TouchableOpacity
             style={[
               styles.button,
-              { backgroundColor: canPromote(selectedLevel ?? 0) ? theme.button : theme.buttonDisabled }
+              { backgroundColor: canPromote(selectedLevel ?? 0) ? themeColors.button : themeColors.buttonDisabled }
             ]}
             onPress={handlePromote}
             disabled={!canPromote(selectedLevel ?? 0) || loading}
@@ -325,7 +345,7 @@ export default function AdminScreen() {
           <TouchableOpacity
             style={[
               styles.button,
-              { backgroundColor: canSuspend(selectedLevel ?? 0) ? theme.button : theme.buttonDisabled }
+              { backgroundColor: canSuspend(selectedLevel ?? 0) ? themeColors.button : themeColors.buttonDisabled }
             ]}
             onPress={handleSuspend}
             disabled={!canSuspend(selectedLevel ?? 0) || loading}
@@ -339,7 +359,7 @@ export default function AdminScreen() {
             <TouchableOpacity
               style={[
                 styles.button,
-                { backgroundColor: canDemote(selectedLevel ?? 0) ? theme.button : theme.buttonDisabled }
+                { backgroundColor: canDemote(selectedLevel ?? 0) ? themeColors.button : themeColors.buttonDisabled }
               ]}
               onPress={handleDemote}
               disabled={!canDemote(selectedLevel ?? 0) || loading}
@@ -353,23 +373,23 @@ export default function AdminScreen() {
 
         {/* Event Id and Broadcast Message */}
         <View style={styles.formRow}>
-          <Text style={[styles.label, { color: theme.text }]}>Event Id</Text>
+          <Text style={[styles.label, { color: themeColors.text }]}>Event Id</Text>
           <TextInput
-            style={[styles.input, { color: theme.text, borderColor: theme.border }]}
+            style={[styles.input, { color: themeColors.text, borderColor: themeColors.border }]}
             value={eventId}
             onChangeText={setEventId}
             placeholder="Enter Event ID"
-            placeholderTextColor={theme.textSecondary}
+            placeholderTextColor={themeColors.textSecondary}
             editable={!loading}
           />
         </View>
-        <Text style={[styles.label, { color: theme.text }]}>Broadcast Message</Text>
+        <Text style={[styles.labelBroadcast, { color: themeColors.text }]}>Broadcast Message</Text>
         <TextInput
-          style={[styles.textArea, { color: theme.text, borderColor: theme.border }]}
+          style={[styles.textArea, { color: themeColors.text, borderColor: themeColors.border }]}
           value={broadcastMsg}
           onChangeText={setBroadcastMsg}
           placeholder="Type your message here..."
-          placeholderTextColor={theme.textSecondary}
+          placeholderTextColor={themeColors.textSecondary}
           multiline
           numberOfLines={4}
           editable={!loading}
@@ -378,7 +398,7 @@ export default function AdminScreen() {
         <TouchableOpacity
           style={[
             styles.button,
-            { backgroundColor: broadcastMsg && eventId ? theme.button : theme.buttonDisabled }
+            { backgroundColor: broadcastMsg && eventId ? themeColors.button : themeColors.buttonDisabled }
           ]}
           onPress={handleSendBroadcast}
           disabled={!broadcastMsg || !eventId || loading}
@@ -388,7 +408,7 @@ export default function AdminScreen() {
 
         {/* Clear Button */}
         <TouchableOpacity
-          style={[styles.button, { backgroundColor: theme.button }]}
+          style={[styles.button, { backgroundColor: themeColors.button }]}
           onPress={clearForm}
           disabled={loading}
         >
@@ -414,7 +434,6 @@ export default function AdminScreen() {
   );
 }
 
-// --- Styles ---
 const styles = StyleSheet.create({
   pageContainer: { flex: 1 },
   contentContainer: { padding: 24, alignItems: 'stretch' },
@@ -433,51 +452,155 @@ const styles = StyleSheet.create({
     marginBottom: 8 
   },
   subtitle: { 
-    fontSize: 18, fontWeight: '600', textAlign: 'center', marginBottom: 12 },
+    fontSize: 18, 
+    fontWeight: '600', 
+    textAlign: 'center', 
+    marginBottom: 12 
+  },
   queueContainer: {
-    minHeight: 80, maxHeight: 160, marginBottom: 12, borderRadius: 8, padding: 8,
-    borderWidth: 1, borderColor: '#ccc', justifyContent: 'flex-start'
+    minHeight: 80, 
+    maxHeight: 160, 
+    marginBottom: 12, 
+    borderRadius: 8, 
+    padding: 8,
+    borderWidth: 1, 
+    borderColor: '#ccc', 
+    justifyContent: 'flex-start'
   },
   queueRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingVertical: 4, borderBottomWidth: 1, borderColor: '#eee'
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between',
+    paddingVertical: 4, 
+    borderBottomWidth: 1, 
+    borderColor: '#eee'
   },
   selectButton: {
-    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: '#3385FF'
+    paddingHorizontal: 12, 
+    paddingVertical: 6, 
+    borderRadius: 6, 
+    backgroundColor: '#3385FF'
   },
-  formRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-  label: { width: 60, fontSize: 16, fontWeight: '500' },
+  formRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginBottom: 10 
+  },
+  label: { 
+    width: 60, 
+    fontSize: 16, 
+    fontWeight: '500' 
+  },
+  labelBroadcast: { 
+    //flexDirection: 'row',
+    alignSelf: 'center',
+    textAlign: 'center',
+    width: '70%', 
+    paddingVertical: 5,
+    fontSize: 16, 
+    fontWeight: '500' 
+  },
   input: {
-    flex: 1, height: 40, borderWidth: 1, borderRadius: 5, paddingHorizontal: 10, marginLeft: 8,
+    flex: 1, 
+    height: 40, 
+    borderWidth: 1, 
+    borderRadius: 5, 
+    paddingHorizontal: 10, 
+    marginLeft: 8,
     backgroundColor: '#fff'
   },
   inputSmall: {
-    width: 60, height: 40, borderWidth: 1, borderRadius: 5, paddingHorizontal: 10, marginRight: 8,
+    width: 60, 
+    height: 40, 
+    borderWidth: 1, 
+    borderRadius: 5, 
+    paddingHorizontal: 10, 
+    marginRight: 8,
     backgroundColor: '#fff'
   },
-  levelRow: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  button: {
-    flex: 1, marginHorizontal: 5, paddingVertical: 12, alignItems: 'center',
-    borderRadius: 8, marginVertical: 8, backgroundColor: '#3385FF'
+  levelRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    flex: 1 
   },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  actionRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  divider: { borderBottomWidth: 1, borderColor: '#ccc', marginVertical: 16 },
+  button: {
+    flex: 1, 
+    marginHorizontal: 5, 
+    paddingVertical: 12, 
+    alignItems: 'center',
+    borderRadius: 8, 
+    marginVertical: 8, 
+    backgroundColor: '#3385FF'
+  },
+  buttonText: { 
+    color: '#fff', 
+    fontSize: 16, 
+    fontWeight: '600' 
+  },
+  actionRow: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    marginBottom: 8 
+  },
+  divider: { 
+    borderBottomWidth: 1, 
+    borderColor: '#ccc', 
+    marginVertical: 16 
+  },
   textArea: {
-    borderWidth: 1, borderRadius: 5, paddingHorizontal: 10, paddingVertical: 8,
-    minHeight: 80, marginBottom: 10, backgroundColor: '#fff'
+    borderWidth: 1, 
+    borderRadius: 5, 
+    paddingHorizontal: 10, 
+    paddingVertical: 8,
+    minHeight: 80, 
+    marginBottom: 10, 
+    backgroundColor: '#fff'
   },
   popupOverlay: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', zIndex: 10
+    position: 'absolute', 
+    top: 0, 
+    left: 0, 
+    right: 0, 
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    zIndex: 10
   },
   popupContainer: {
-    backgroundColor: '#fff', borderRadius: 8, padding: 20, alignItems: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 5
+    backgroundColor: '#fff', 
+    borderRadius: 8, 
+    padding: 20, 
+    alignItems: 'center',
+    shadowColor: '#000', 
+    shadowOffset: { width: 0, height: 2 }, 
+    shadowOpacity: 0.3, 
+    shadowRadius: 4, 
+    elevation: 5
   },
-  popupText: { fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 10, textAlign: 'center' },
-  buttonPopupClose: { paddingVertical: 8, paddingHorizontal: 20, backgroundColor: '#3385FF', borderRadius: 5 },
-  popupCloseText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
-  backButton: { flexDirection: 'row', alignItems: 'center', marginTop: 24, alignSelf: 'center' },
+  popupText: { 
+    fontSize: 16, 
+    fontWeight: 'bold', 
+    color: '#333', 
+    marginBottom: 10, 
+    textAlign: 'center' 
+  },
+  buttonPopupClose: { 
+    paddingVertical: 8, 
+    paddingHorizontal: 20, 
+    backgroundColor: '#3385FF', 
+    borderRadius: 5 
+  },
+  popupCloseText: { 
+    color: '#fff', 
+    fontSize: 14, 
+    fontWeight: 'bold' 
+  },
+  backButton: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginTop: 24, 
+    alignSelf: 'center' 
+  },
 });
 

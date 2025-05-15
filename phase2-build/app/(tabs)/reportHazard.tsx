@@ -163,10 +163,11 @@ export default function ReportHazardScreen() {
     }
   };
 
-  
-
-
-  
+  /*
+  ###################################################################
+  ## -- PRESENTATION / UI --                                    ##
+  ###################################################################
+  */
   return (
     <View style={styles.pageContainer}>
       {/* Settings Button */}

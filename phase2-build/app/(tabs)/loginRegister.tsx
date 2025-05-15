@@ -112,6 +112,7 @@ export default function LoginScreen() {
             expiry: new Date(Date.now() + 3600 * 1000).toISOString(), // 1 hour expiry
             accountType,
             active,
+            uid: user.uid,
           });
           setLoginout(true);
           <Text>Login successful</Text>;
@@ -158,6 +159,7 @@ export default function LoginScreen() {
           expiry: new Date(Date.now() + 3600 * 1000).toISOString(), //  Sets expiry for 1 hour into the future
           accountType: userData.accountType,
           active: userData.active,
+          uid: user.uid,
         });
 
         // Display success popup
@@ -206,7 +208,7 @@ export default function LoginScreen() {
 
   /*
   ###################################################################
-  ## -- PRESENTATION LOGIC --                                      ##
+  ## -- PRESENTATION / UI --                                       ##
   ###################################################################
   */
   console.log('Session Type:', session.type);
