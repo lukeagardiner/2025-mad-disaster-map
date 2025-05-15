@@ -407,7 +407,7 @@ export default function Index() {
         updateSession({ currentLocation: DEFAULT_REGION });
       } finally {
         setLoading(false);
-        setFirstLoad(false);
+        //setFirstLoad(false);
       }
     } else {
       // On subsequent loads, use session location or fallback to default

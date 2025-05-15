@@ -233,7 +233,7 @@ export default function Settings() {
         {/* Become Verified User Button -- must protect user from being 0*/}
         {session.type === 'authenticated' && (session.accountType ?? 0) < 4 && (
           <TouchableOpacity
-            style={[styles.aboutButton, { backgroundColor: '#4682B4' }]}
+            style={[styles.aboutButton, { backgroundColor: '#007BFF' }]}
             onPress={handleBecomeVerified}
           >
             <Text style={styles.aboutButtonText}>Become Verified User</Text>
