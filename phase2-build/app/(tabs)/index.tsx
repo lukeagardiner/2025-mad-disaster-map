@@ -525,8 +525,8 @@ const styles = StyleSheet.create({
   },
   refreshButton: {
     position: "absolute",
-    bottom: "12%",
-    right: "5%",
+    bottom: 45,
+    right: 35,
     padding: 5,
     zIndex: 1,
   },
