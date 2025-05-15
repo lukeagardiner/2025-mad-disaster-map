@@ -175,6 +175,11 @@ export default function ReportHazardScreen() {
     }
   };
 
+  /*
+  ###################################################################
+  ## -- PRESENTATION / UI --                                    ##
+  ###################################################################
+  */
   // Handle hazard submission with authentication check
   const handleSubmit = async () => {
     // Check if user is authenticated

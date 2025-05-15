@@ -112,10 +112,13 @@ export default function LoginScreen() {
             expiry: new Date(Date.now() + 3600 * 1000).toISOString(), // 1 hour expiry
             accountType,
             active,
+            uid: user.uid,
           });
           setLoginout(true);
           <Text>Login successful</Text>;
-          router.push('/(tabs)');
+          if (accountType === 1 ) {
+            router.push('/(tabs)');
+          }
         })
         .catch((error) => {
           const errorCode = error.code;
@@ -156,6 +159,7 @@ export default function LoginScreen() {
           expiry: new Date(Date.now() + 3600 * 1000).toISOString(), //  Sets expiry for 1 hour into the future
           accountType: userData.accountType,
           active: userData.active,
+          uid: user.uid,
         });
 
         // Display success popup
@@ -204,7 +208,7 @@ export default function LoginScreen() {
 
   /*
   ###################################################################
-  ## -- PRESENTATION LOGIC --                                      ##
+  ## -- PRESENTATION / UI --                                       ##
   ###################################################################
   */
   console.log('Session Type:', session.type);
@@ -361,6 +365,16 @@ export default function LoginScreen() {
                   >
                     <Text style={styles.buttonText}>Logout</Text>
                   </TouchableOpacity>
+              )}
+              {/* ADMIN BUTTON - Add this code right after the logout button */}
+              {session.type === 'authenticated' && (session.accountType ?? 0) > 1  && session.active === 1 && (
+                <TouchableOpacity
+                  onPress={() => router.push('/admin')}
+                  style={[styles.buttonLogout, { backgroundColor: '#4682B4', marginTop: 10 }]}
+                  activeOpacity={0.8}
+                >
+                 <Text style={styles.buttonText}>Enter Admin</Text>
+                </TouchableOpacity>
               )}
               {error ? <Text style={styles.errorText}>{error}</Text> : null}
             </View>

@@ -34,6 +34,7 @@ interface SessionData {
   locationPermission?: PermissionResponse; // Store the full permission object to pass permissions to all components inside the app
   sessionStartTime: string | null;
   expiry: string | null;
+  uid: string | null;
 }
 
 // For passing the actual session if required
@@ -60,6 +61,7 @@ const defaultSession: SessionData = {
   locationPermission: undefined, // Default to undefined
   sessionStartTime: null,
   expiry: null,
+  uid: null,
 };
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
