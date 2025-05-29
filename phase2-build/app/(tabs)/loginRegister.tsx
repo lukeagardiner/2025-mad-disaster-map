@@ -36,7 +36,6 @@ const INITIAL_ERROR = ''; // Initial error state
 ## -- PAGE AND EVENT LOGIC --                                    ##
 ###################################################################
 */
-
 export default function LoginScreen() {
   const { theme } = useTheme();
   const { session, updateSession, clearSession} = useSession();
