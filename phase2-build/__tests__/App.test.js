@@ -10,7 +10,12 @@ jest.mock('@react-native-async-storage/async-storage'); // Add if needed.
 
 // Use the mocks from __mocks__ directory!
 jest.mock('../SessionContext', () => require('../__mocks__/SessionContext.js'));
-jest.mock('@/theme/ThemeContext');
+//jest.mock('@/theme/ThemeContext');
+jest.mock('@/theme/ThemeContext', () => ({
+  __esModule: true,
+  useTheme: () => ({ theme: 'light' }), // mock the return value as needed
+  ThemeProvider: ({ children }) => children, // optional: passthrough
+}));
 
 // This one is fine, since you want the real component but a fake fetchHazards.
 jest.mock('../app/(tabs)/index', () => {
