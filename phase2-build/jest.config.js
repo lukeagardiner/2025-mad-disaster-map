@@ -1,7 +1,7 @@
 module.exports = {
     preset: 'jest-expo',
     setupFiles: [
-        '../jest.setup.js',
+        '<rootDir>/jest.setup.js',
         '@react-native-async-storage/async-storage/jest/async-storage-mock'
     ],
     setupFilesAfterEnv: ['@testing-library/jest-native/extend-expect'],

@@ -472,8 +472,10 @@ export default function Index() {
 
       {/* Main Title */}
       <View style={styles.titleContainer}>
-        <Text style={[styles.title, { color: theme === "dark" ? "white" : "black" }]}>
-          Disaster Map
+        <Text 
+          testID="pageTitle" 
+          style={[styles.title, { color: theme === "dark" ? "white" : "black" }]}>
+            Disaster Map
         </Text>
       </View>
 
@@ -518,6 +520,7 @@ export default function Index() {
       {/* Loading Indicator */}
       {loading && (
         <ActivityIndicator
+          testID="loading-indicator"
           style={styles.loadingIndicator}
           size="large"
           color={theme === "dark" ? "#fff" : "#000"}
