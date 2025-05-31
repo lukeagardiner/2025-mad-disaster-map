@@ -54,6 +54,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
+    "@testing-library/jest-native": "^5.4.3",
     "@testing-library/react-native": "^11.5.4",
     "@types/babel__core": "^7.20.5",
     "@types/babel__generator": "^7.27.0",
