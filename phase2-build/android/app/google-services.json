@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "826012178812",
+    "project_id": "disaster-map-a4cf1",
+    "storage_bucket": "disaster-map-a4cf1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:826012178812:android:42cf962887e20a6eb66cf9",
+        "android_client_info": {
+          "package_name": "com.cse3mad.disastermap"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDjYnCi1rL-Rv7LqmES5r1u6cXU5ErhMHk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
