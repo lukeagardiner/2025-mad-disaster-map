@@ -59,6 +59,8 @@ import { render, waitFor, screen } from '@testing-library/react-native';
 import IndexScreen from '../app/(tabs)/index';
 import { useSession, SessionProvider } from '../SessionContext';
 import { ThemeProvider } from '../theme/ThemeContext';
+import { fireEvent } from '@testing-library/react-native';
+import Layout from '../app/(tabs)/_layout';
 
 function ContextTestComponent() {
   const ctx = useSession();
@@ -66,6 +68,7 @@ function ContextTestComponent() {
   return <Text>Context Test</Text>;
 }
 
+// Session context object test
 test('SessionContext provides value', () => {
   render(
     <SessionProvider>
@@ -74,6 +77,7 @@ test('SessionContext provides value', () => {
   );
 });
 
+// Disaster map page renter test
 test('renders Disaster Map title', async () => {
   const { getByText, getByTestId, queryByTestId, toJSON } = render(
     <SessionProvider>
@@ -92,4 +96,19 @@ test('renders Disaster Map title', async () => {
   console.log(toJSON());
 
   expect(getByTestId('pageTitle')).toBeTruthy();
+});
+
+// Login/Register page navigation test
+test('navigates to Login tab', async () => {
+  const { getByText, findByText } = render(
+    <SessionProvider>
+      <ThemeProvider>
+        <Layout />
+      </ThemeProvider>
+    </SessionProvider>
+  );
+
+  fireEvent.press(getByText('Login'));
+
+  expect(await findByText('Login or Sign up Today!')).toBeTruthy();
 });
